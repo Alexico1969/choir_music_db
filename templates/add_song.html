@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Add New Song - Choir Music Database{% endblock %}
+
+{% block content %}
+<div class="add-song-page">
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Add New Song</h2>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="title" class="form-label">Song Title *</label>
+                                <input type="text" class="form-control" id="title" name="title" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="composer" class="form-label">Composer</label>
+                                <input type="text" class="form-control" id="composer" name="composer">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="arrangement" class="form-label">Arrangement</label>
+                                <input type="text" class="form-control" id="arrangement" name="arrangement" placeholder="e.g., SATB, Chant, etc.">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="key" class="form-label">Key Signature</label>
+                                <input type="text" class="form-control" id="key" name="key" placeholder="e.g., C Major, G Minor">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="difficulty" class="form-label">Difficulty Level</label>
+                                <select class="form-control" id="difficulty" name="difficulty">
+                                    <option value="">Select difficulty</option>
+                                    <option value="Easy">Easy</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="Hard">Hard</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Description</label>
+                                <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="pdf_file" class="form-label">Sheet Music (PDF)</label>
+                                <input type="file" class="form-control" id="pdf_file" name="pdf_file" accept=".pdf">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="audio_file" class="form-label">Audio Sample (MP3/WAV)</label>
+                                <input type="file" class="form-control" id="audio_file" name="audio_file" accept=".mp3,.wav">
+                            </div>
+                            
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <a href="{{ url_for('home') }}" class="btn btn-secondary me-md-2">Cancel</a>
+                                <button type="submit" class="btn btn-primary">Add Song</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

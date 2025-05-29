@@ -1,0 +1,355 @@
+/* Basic Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+    line-height: 1.6;
+}
+
+/* Ensure full width and no default margin/padding */
+html, body {
+    width: 100vw;
+    min-width: 100vw;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+/* Top Navigation */
+.top-nav {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 1rem 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.nav-menu {
+    color: #fff;
+    list-style: none;
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+.nav-link {
+    color: white;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.nav-link:hover, .nav-link.active {
+    background-color: rgba(255,255,255,0.2);
+    color: white;
+    text-decoration: none;
+}
+
+/* Add color styles for navbar elements */
+.navbar, .navbar a, .navbar-brand, .navbar-nav .nav-link {
+    color: #fff !important;
+}
+
+/* Main Container */
+.container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    gap: 2rem;
+}
+
+/* Left Menu */
+.left-menu {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    height: fit-content;
+}
+
+.left-menu h3 {
+    color: #667eea;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.alphabet-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.alphabet-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.alphabet-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.alphabet-btn.active {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+/* Main Content */
+.main-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* Welcome Section */
+.welcome-section {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding: 2rem 0;
+}
+
+.welcome-section h1 {
+    color: #667eea;
+    margin-bottom: 1rem;
+    font-size: 2.5rem;
+}
+
+.welcome-section p {
+    color: #666;
+    font-size: 1.1rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Song Lists */
+.song-list {
+    margin-top: 2rem;
+}
+
+.song-list h3 {
+    color: #667eea;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.song-item {
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    background: white;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+}
+
+.song-item:hover {
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+}
+
+.song-item h4 {
+    color: #333;
+    margin-bottom: 0.25rem;
+}
+
+.song-item p {
+    color: #666;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+/* Song Display */
+.song-display {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 2px solid #e9ecef;
+}
+
+.song-info {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+}
+
+/* Table styles for dump page */
+.table-responsive {
+    margin-top: 2rem;
+}
+
+.table th {
+    white-space: nowrap;
+}
+
+.table td {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.table td:hover {
+    white-space: normal;
+    overflow: visible;
+}
+
+/* Three Column Layout */
+.three-column {
+    display: grid;
+    grid-template-columns: 200px 1fr 1fr;
+    gap: 2rem;
+    padding: 2rem;
+    min-height: calc(100vh - 60px);
+}
+
+.songs-column, .details-column {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    height: fit-content;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.details-column {
+    position: sticky;
+    top: 2rem;
+}
+
+.initial-message {
+    text-align: center;
+    color: #666;
+    padding: 2rem;
+}
+
+/* Update responsive design for three columns */
+@media (max-width: 1200px) {
+    .three-column {
+        grid-template-columns: 200px 1fr 1fr;
+        gap: 1rem;
+        padding: 0 1rem;
+    }
+}
+
+@media (max-width: 900px) {
+    .three-column {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .songs-column, .details-column {
+        max-height: none;
+    }
+    
+    .details-column {
+        position: static;
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 900px) {
+    .container {
+        grid-template-columns: 1fr;
+        padding: 0 1rem;
+        gap: 1rem;
+    }
+    .left-menu {
+        margin-bottom: 1.5rem;
+        padding: 1.5rem;
+    }
+    .main-content {
+        padding: 1.5rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .container {
+        grid-template-columns: 1fr;
+        padding: 0 0.5rem;
+        gap: 0.5rem;
+    }
+    .left-menu,
+    .main-content {
+        padding: 1rem;
+        border-radius: 0;
+        box-shadow: none;
+    }
+    .welcome-section h1 {
+        font-size: 1.5rem;
+    }
+    .nav-menu {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 0 0.5rem;
+    }
+    .nav-link {
+        padding: 0.5rem 0.5rem;
+        font-size: 1rem;
+    }
+    .song-item {
+        padding: 0.75rem;
+    }
+    .song-info {
+        padding: 1rem;
+    }
+}
+
+/* Make main-content wider on large screens */
+@media (min-width: 1200px) {
+    .container {
+        width: 100vw;
+        max-width: 100vw;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: 20vw 80vw;
+        gap: 0;
+    }
+    .left-menu {
+        max-width: 350px;
+        width: 100%;
+    }
+    .main-content {
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        padding: 2rem 0; /* Only vertical padding */
+    }
+    
+    /* Special handling for Add Song form page */
+    .add-song-page .container {
+        grid-template-columns: 1fr; /* Single column layout for add song page */
+        max-width: 1000px; /* Reasonable max width */
+        margin: 2rem auto; /* Center the container */
+        padding: 0 2rem; /* Add horizontal padding */
+    }
+    
+    .add-song-page .col-md-8 {
+        max-width: 100% !important; /* Override Bootstrap constraint */
+        flex: 0 0 100% !important; /* Full width */
+    }
+}
+
+.songs-column .initial-message {
+    text-align: center;
+    color: #666;
+    padding: 2rem;
+    margin-top: 2rem;
+}

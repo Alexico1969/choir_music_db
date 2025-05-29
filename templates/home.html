@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="three-column">
+    <!-- Left Menu -->
+    <aside class="left-menu">
+        <h3>Browse Songs</h3>
+        <div class="btn-group-vertical w-100" role="group">
+            <button class="btn btn-outline-primary letter-range-btn" data-range="A-F">A-F</button>
+            <button class="btn btn-outline-primary letter-range-btn" data-range="G-M">G-M</button>
+            <button class="btn btn-outline-primary letter-range-btn" data-range="N-S">N-S</button>
+            <button class="btn btn-outline-primary letter-range-btn" data-range="T-Z">T-Z</button>
+        </div>
+    </aside>
+
+    <!-- Middle Column -->
+    <div class="songs-column">
+        <div class="song-list">
+            <div class="initial-message">
+                <h3>Browse Songs</h3>
+                <p>Click one of the buttons under "Browse Songs" to view the song list</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="details-column">
+        <div class="song-display">
+            <div class="initial-message">
+                <h3>Select a Song</h3>
+                <p>Click on a song to view its details</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

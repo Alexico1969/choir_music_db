@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Database Dump - Choir Music Database{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Complete Database Contents</h2>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Composer</th>
+                    <th>Arrangement</th>
+                    <th>Key</th>
+                    <th>Difficulty</th>
+                    <th>Description</th>
+                    <th>PDF</th>
+                    <th>Audio</th>
+                    <th>Created</th>
+                    <th>Updated</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for song in songs %}
+                <tr>
+                    <td>{{ song.id }}</td>
+                    <td>{{ song.title }}</td>
+                    <td>{{ song.composer or '' }}</td>
+                    <td>{{ song.arrangement or '' }}</td>
+                    <td>{{ song.key_signature or '' }}</td>
+                    <td>{{ song.difficulty or '' }}</td>
+                    <td>{{ song.description or '' }}</td>
+                    <td>
+                        {% if song.pdf_filename %}
+                        <a href="{{ url_for('static', filename='uploads/pdfs/' + song.pdf_filename) }}" target="_blank">PDF</a>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if song.audio_filename %}
+                        <a href="{{ url_for('static', filename='uploads/audio/' + song.audio_filename) }}" target="_blank">Audio</a>
+                        {% endif %}
+                    </td>
+                    <td>{{ song.created_at }}</td>
+                    <td>{{ song.updated_at }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
