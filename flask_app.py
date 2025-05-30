@@ -8,7 +8,7 @@ from authlib.integrations.flask_client import OAuth
 from secret import Google_Client_ID, Google_secret
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-change-this'
+app.config['SECRET_KEY'] = 'your-very-secret-key'  # Should be the same every time the app runs
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
