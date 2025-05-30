@@ -8,12 +8,22 @@ from authlib.integrations.flask_client import OAuth
 from secret import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_DISCOVERY_URL
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-here'
+app.config['SECRET_KEY'] = 'your-secure-secret-key-change-this'  # Change this!
 
-# Initialize LoginManager right after app creation
+class User(UserMixin):
+    def __init__(self, email):
+        self.id = email
+        self.email = email
+
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login'  # This tells Flask-Login which endpoint to redirect to
+login_manager.login_view = 'login'
+
+@login_manager.user_loader
+def load_user(user_id):
+    if user_id:
+        return User(user_id)
+    return None
 
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
@@ -189,26 +199,6 @@ def delete_song(song_id):
         print(f"Error deleting song: {e}")
         return jsonify({'error': 'Failed to delete song'}), 500
 
-# Add these imports if not present
-from flask_login import LoginManager, UserMixin, login_user, login_required
-
-# Add User class
-class User(UserMixin):
-    def __init__(self, email):
-        self.id = email
-        self.email = email
-
-# Initialize LoginManager
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
-
-@login_manager.user_loader
-def load_user(email):
-    if email:
-        return User(email)
-    return None
-
 oauth = OAuth(app)
 google = oauth.register(
     name='google',
@@ -223,8 +213,10 @@ google = oauth.register(
 
 @app.route('/login')
 def login():
+    # Store the next page in session before redirecting to Google
+    next_url = request.args.get('next')
+    session['next_url'] = next_url if next_url else '/'
     redirect_uri = url_for('authorize', _external=True)
-    session['next_url'] = request.args.get('next', '/')
     return google.authorize_redirect(redirect_uri)
 
 @app.route('/authorize')
@@ -234,26 +226,28 @@ def authorize():
         user_info = google.parse_id_token(token)
         user_email = user_info['email']
         
-        # Create user and log them in
+        # Create and login user
         user = User(user_email)
-        login_user(user)
+        login_user(user, remember=True)  # Add remember=True
         
-        # Store in session
+        # Store email in session
         session['user_email'] = user_email
         
-        # Get next page from session
-        next_page = session.get('next_url', '/')
-        session.pop('next_url', None)  # Remove from session
+        # Get the next URL from session
+        next_url = session.pop('next_url', '/')
         
-        return redirect(next_page)
+        flash('Successfully logged in!')
+        return redirect(next_url)
     except Exception as e:
         print(f"Authorization error: {e}")
+        flash('Login failed. Please try again.')
         return redirect(url_for('home'))
 
 @app.route('/logout')
 def logout():
     logout_user()
-    session.pop('user_email', None)
+    session.clear()  # Clear entire session
+    flash('You have been logged out.')
     return redirect(url_for('home'))
 
 if __name__ == '__main__':
