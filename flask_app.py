@@ -239,10 +239,12 @@ def authorize():
     try:
         # Attempt to retrieve the token
         token = google.authorize_access_token()
+        session['debug_token'] = token  # Store token in session for debugging
         print(f"Token received: {token}")  # Debug: Check if token is received
 
         # Attempt to parse the user info
         user_info = google.parse_id_token(token)
+        session['debug_user_info'] = user_info  # Store user info in session for debugging
         print(f"User info: {user_info}")  # Debug: Check user info
 
         # Extract the email
@@ -257,6 +259,11 @@ def authorize():
         session.permanent = True
 
         # Debug logging
+        session['debug_login'] = {
+            'user_email': user_email,
+            'authenticated': current_user.is_authenticated,
+            'session_data': dict(session)
+        }
         print(f"Login successful for: {user_email}")
         print(f"Session data: {dict(session)}")
         print(f"User authenticated: {current_user.is_authenticated}")
@@ -267,6 +274,7 @@ def authorize():
 
     except Exception as e:
         # Log the error for debugging
+        session['debug_error'] = str(e)  # Store error in session for debugging
         print(f"Authorization failed: {str(e)}")
         flash('Login failed. Please try again.')
         return redirect(url_for('login'))
@@ -283,7 +291,11 @@ def debug():
     return {
         'authenticated': current_user.is_authenticated,
         'user_id': current_user.get_id() if current_user.is_authenticated else None,
-        'session': dict(session)
+        'session': dict(session),
+        'debug_token': session.get('debug_token'),
+        'debug_user_info': session.get('debug_user_info'),
+        'debug_login': session.get('debug_login'),
+        'debug_error': session.get('debug_error')
     }
 
 if __name__ == '__main__':
