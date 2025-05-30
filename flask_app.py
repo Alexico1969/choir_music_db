@@ -9,20 +9,26 @@ from secret import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_DISCOVERY_URL
 from datetime import timedelta
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secure-secret-key-change-this'  # Change this!
+app.config['SECRET_KEY'] = os.urandom(24)  # Generate a real secret key
 
 class User(UserMixin):
     def __init__(self, email):
         self.id = email  # Flask-Login uses this as user_id
         self.email = email
 
+    def get_id(self):  # Override to ensure correct ID handling
+        return str(self.id)
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+login_manager.login_message = 'Please log in to access this page.'
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User(user_id)  # Simple user loader that matches self.id
+    if user_id:
+        return User(user_id)
+    return None
 
 # Add session persistence
 @app.before_request
@@ -205,25 +211,25 @@ def delete_song(song_id):
         print(f"Error deleting song: {e}")
         return jsonify({'error': 'Failed to delete song'}), 500
 
+# Update the OAuth configuration
 oauth = OAuth(app)
 google = oauth.register(
     name='google',
+    server_metadata_url=GOOGLE_DISCOVERY_URL,
     client_id=GOOGLE_CLIENT_ID,
     client_secret=GOOGLE_CLIENT_SECRET,
-    server_metadata_url=GOOGLE_DISCOVERY_URL,
     client_kwargs={
-        'scope': 'openid email profile',
-        'prompt': 'select_account'
+        'scope': 'openid email profile'
     }
 )
 
 @app.route('/login')
 def login():
-    # Store the next page in session before redirecting to Google
+    # Store the requested URL for redirecting after login
     next_url = request.args.get('next')
-    session['next_url'] = next_url if next_url else '/'
-    redirect_uri = url_for('authorize', _external=True)
-    return google.authorize_redirect(redirect_uri)
+    if next_url:
+        session['next_url'] = next_url
+    return google.authorize_redirect(url_for('authorize', _external=True))
 
 @app.route('/authorize')
 def authorize():
@@ -234,20 +240,24 @@ def authorize():
         
         # Create and login user
         user = User(user_email)
-        login_user(user)  # Login the user
+        login_user(user, remember=True)  # Enable remember me
         
         # Store in session
         session['user_email'] = user_email
+        session.permanent = True
         
         # Debug prints
-        print("Logged in user:", current_user.is_authenticated)
-        print("Session:", dict(session))
+        print(f"Login successful - User: {user_email}")
+        print(f"Authenticated: {current_user.is_authenticated}")
+        print(f"Session: {dict(session)}")
         
-        # Get next URL from session
-        next_url = session.pop('next_url', '/')
-        return redirect(next_url)
+        # Redirect to next_url or home
+        next_url = session.pop('next_url', None)
+        return redirect(next_url or url_for('home'))
+        
     except Exception as e:
-        print(f"Authorization error: {e}")
+        print(f"Authorization error: {str(e)}")
+        flash('Login failed. Please try again.')
         return redirect(url_for('home'))
 
 @app.route('/logout')
