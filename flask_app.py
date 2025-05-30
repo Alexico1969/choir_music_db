@@ -32,10 +32,6 @@ class User(UserMixin):
     def get_id(self):
         return str(self.id)
 
-    @property
-    def is_authenticated(self):
-        return True
-
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
