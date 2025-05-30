@@ -9,15 +9,32 @@ from secret import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_DISCOVERY_URL
 from datetime import timedelta
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.urandom(24)  # Generate a real secret key
+app.config['SECRET_KEY'] = 'your-fixed-secret-key-here'  # Use a fixed key instead of random
+
+# Move OAuth config right after app creation
+oauth = OAuth(app)
+google = oauth.register(
+    name='google',
+    server_metadata_url=GOOGLE_DISCOVERY_URL,
+    client_id=GOOGLE_CLIENT_ID,
+    client_secret=GOOGLE_CLIENT_SECRET,
+    client_kwargs={
+        'scope': 'openid email profile',
+        'prompt': 'select_account'  # Force Google account selection
+    }
+)
 
 class User(UserMixin):
     def __init__(self, email):
-        self.id = email  # Flask-Login uses this as user_id
+        self.id = email
         self.email = email
 
-    def get_id(self):  # Override to ensure correct ID handling
+    def get_id(self):
         return str(self.id)
+
+    @property
+    def is_authenticated(self):
+        return True
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -26,9 +43,7 @@ login_manager.login_message = 'Please log in to access this page.'
 
 @login_manager.user_loader
 def load_user(user_id):
-    if user_id:
-        return User(user_id)
-    return None
+    return User(user_id) if user_id else None
 
 # Add session persistence
 @app.before_request
@@ -211,24 +226,11 @@ def delete_song(song_id):
         print(f"Error deleting song: {e}")
         return jsonify({'error': 'Failed to delete song'}), 500
 
-# Update the OAuth configuration
-oauth = OAuth(app)
-google = oauth.register(
-    name='google',
-    server_metadata_url=GOOGLE_DISCOVERY_URL,
-    client_id=GOOGLE_CLIENT_ID,
-    client_secret=GOOGLE_CLIENT_SECRET,
-    client_kwargs={
-        'scope': 'openid email profile'
-    }
-)
-
 @app.route('/login')
 def login():
-    # Store the requested URL for redirecting after login
-    next_url = request.args.get('next')
-    if next_url:
-        session['next_url'] = next_url
+    session.clear()  # Clear any existing session
+    next_url = request.args.get('next', url_for('home'))
+    session['next_url'] = next_url
     return google.authorize_redirect(url_for('authorize', _external=True))
 
 @app.route('/authorize')
@@ -236,29 +238,28 @@ def authorize():
     try:
         token = google.authorize_access_token()
         user_info = google.parse_id_token(token)
-        user_email = user_info['email']
+        user_email = user_info.get('email')
         
-        # Create and login user
+        if not user_email:
+            raise ValueError("No email provided by Google")
+            
         user = User(user_email)
-        login_user(user, remember=True)  # Enable remember me
-        
-        # Store in session
+        login_user(user, remember=True)
         session['user_email'] = user_email
         session.permanent = True
         
-        # Debug prints
-        print(f"Login successful - User: {user_email}")
-        print(f"Authenticated: {current_user.is_authenticated}")
-        print(f"Session: {dict(session)}")
+        # Debug logging
+        print(f"Login successful for: {user_email}")
+        print(f"Session data: {dict(session)}")
+        print(f"User authenticated: {current_user.is_authenticated}")
         
-        # Redirect to next_url or home
-        next_url = session.pop('next_url', None)
-        return redirect(next_url or url_for('home'))
+        next_url = session.pop('next_url', url_for('home'))
+        return redirect(next_url)
         
     except Exception as e:
-        print(f"Authorization error: {str(e)}")
+        print(f"Authorization failed: {str(e)}")
         flash('Login failed. Please try again.')
-        return redirect(url_for('home'))
+        return redirect(url_for('login'))
 
 @app.route('/logout')
 def logout():
