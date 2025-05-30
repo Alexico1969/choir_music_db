@@ -271,6 +271,14 @@ def logout():
     flash('You have been logged out.')
     return redirect(url_for('home'))
 
+@app.route('/debug')
+def debug():
+    return {
+        'authenticated': current_user.is_authenticated,
+        'user_id': current_user.get_id() if current_user.is_authenticated else None,
+        'session': dict(session)
+    }
+
 if __name__ == '__main__':
     # Create upload directories if they don't exist
     os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'pdfs'), exist_ok=True)
