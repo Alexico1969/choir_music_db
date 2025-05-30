@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 import sqlite3
 import os
 from werkzeug.utils import secure_filename
@@ -188,14 +188,14 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
 oauth = OAuth(app)
-
 google = oauth.register(
     name='google',
     client_id=GOOGLE_CLIENT_ID,
     client_secret=GOOGLE_CLIENT_SECRET,
     server_metadata_url=GOOGLE_DISCOVERY_URL,
     client_kwargs={
-        'scope': 'openid email profile'
+        'scope': 'openid email profile',
+        'prompt': 'select_account'
     }
 )
 
@@ -214,6 +214,7 @@ def load_user(user_id):
 @app.route('/login')
 def login():
     redirect_uri = url_for('authorize', _external=True)
+    session['next_url'] = request.args.get('next', '/')
     return google.authorize_redirect(redirect_uri)
 
 @app.route('/authorize')
@@ -221,9 +222,9 @@ def authorize():
     try:
         token = google.authorize_access_token()
         user_info = google.parse_id_token(token)
-        # Store user info in session
         session['user_email'] = user_info['email']
-        return redirect(url_for('home'))
+        next_url = session.pop('next_url', '/')
+        return redirect(next_url)
     except Exception as e:
         print(f"Authorization error: {e}")
         return redirect(url_for('home'))
