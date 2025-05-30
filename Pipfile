@@ -1,0 +1,16 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+flask = "==2.3.3"
+werkzeug = "==2.3.7"
+sqlite3 = "*"
+flask-login = "==0.6.2"
+authlib = "==3.0.0"
+
+[dev-packages]
+
+[requires]
+python_version = "3.12"

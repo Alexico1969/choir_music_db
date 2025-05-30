@@ -5,10 +5,10 @@ from werkzeug.utils import secure_filename
 from database import init_db, get_db_connection
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from authlib.integrations.flask_client import OAuth
-from secret import Google_Client_ID, Google_secret
+from secret import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_DISCOVERY_URL
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-very-secret-key'  # Should be the same every time the app runs
+app.config['SECRET_KEY'] = 'your-secret-key-here'  # Change this to a secure secret key
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
@@ -188,16 +188,15 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
 oauth = OAuth(app)
-app.config['GOOGLE_CLIENT_ID'] = Google_Client_ID
-app.config['GOOGLE_CLIENT_SECRET'] = Google_secret
-app.config['SECRET_KEY'] = 'my-secret-key-12343'  # Already set
 
 google = oauth.register(
     name='google',
-    client_id=app.config['GOOGLE_CLIENT_ID'],
-    client_secret=app.config['GOOGLE_CLIENT_SECRET'],
-    server_metadata_url='https://accounts.google.com/.well-known/openid_configuration',
-    client_kwargs={'scope': 'openid email profile'},
+    client_id=GOOGLE_CLIENT_ID,
+    client_secret=GOOGLE_CLIENT_SECRET,
+    server_metadata_url=GOOGLE_DISCOVERY_URL,
+    client_kwargs={
+        'scope': 'openid email profile'
+    }
 )
 
 class User(UserMixin):
@@ -214,19 +213,20 @@ def load_user(user_id):
 
 @app.route('/login')
 def login():
-    redirect_uri = url_for('auth_callback', _external=True)
+    redirect_uri = url_for('authorize', _external=True)
     return google.authorize_redirect(redirect_uri)
 
-@app.route('/auth/callback')
-def auth_callback():
-    token = google.authorize_access_token()
-    resp = google.get('userinfo')
-    user_info = resp.json()
-    user_id = user_info['sub']
-    user = User(id_=user_id, name=user_info['name'], email=user_info['email'])
-    users[user_id] = user
-    login_user(user)
-    return redirect(url_for('home'))
+@app.route('/authorize')
+def authorize():
+    try:
+        token = google.authorize_access_token()
+        user_info = google.parse_id_token(token)
+        # Store user info in session
+        session['user_email'] = user_info['email']
+        return redirect(url_for('home'))
+    except Exception as e:
+        print(f"Authorization error: {e}")
+        return redirect(url_for('home'))
 
 @app.route('/logout')
 @login_required
