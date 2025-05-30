@@ -239,11 +239,15 @@ def authorize():
     try:
         # Attempt to retrieve the token
         token = google.authorize_access_token()
+        if not token:
+            raise ValueError("No token received from Google")
         session['debug_token'] = token  # Store token in session for debugging
         print(f"Token received: {token}")  # Debug: Check if token is received
 
         # Attempt to parse the user info
         user_info = google.parse_id_token(token)
+        if not user_info:
+            raise ValueError("No user info received from Google")
         session['debug_user_info'] = user_info  # Store user info in session for debugging
         print(f"User info: {user_info}")  # Debug: Check user info
 
