@@ -54,13 +54,13 @@ def get_song(song_id):
         return jsonify({'error': 'Song not found'}), 404
     return jsonify(dict(song))
 
-@app.route('/add_song')  # Change hyphen to underscore
+@app.route('/add_song', methods=['GET', 'POST'])
 @login_required
 def add_song():
-    return render_template('add_song.html')
-
-@app.route('/add-song', methods=['POST'])
-def add_song_post():
+    if request.method == 'GET':
+        return render_template('add_song.html')
+    
+    # POST handling
     title = request.form['title']
     composer = request.form['composer']
     arrangement = request.form['arrangement']
@@ -99,20 +99,19 @@ def add_song_post():
     flash('Song added successfully!')
     return redirect(url_for('home'))
 
-@app.route('/edit_song')  # Change hyphen to underscore
+@app.route('/edit_song', methods=['GET', 'POST'])
 @login_required
 def edit_song():
-    song_id = request.args.get('id')
-    if song_id:
-        conn = get_db_connection()
-        song = conn.execute('SELECT * FROM songs WHERE id = ?', (song_id,)).fetchone()
-        conn.close()
-        return render_template('edit_song.html', song=song)
-    return render_template('edit_song.html')
-
-@app.route('/edit-song', methods=['POST'])
-@login_required
-def edit_song_post():
+    if request.method == 'GET':
+        song_id = request.args.get('id')
+        if song_id:
+            conn = get_db_connection()
+            song = conn.execute('SELECT * FROM songs WHERE id = ?', (song_id,)).fetchone()
+            conn.close()
+            return render_template('edit_song.html', song=song)
+        return render_template('edit_song.html')
+    
+    # POST handling
     song_id = request.form['song_id']
     title = request.form['title']
     composer = request.form['composer']
