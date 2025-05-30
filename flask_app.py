@@ -8,7 +8,13 @@ from authlib.integrations.flask_client import OAuth
 from secret import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_DISCOVERY_URL
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-here'  # Change this to a secure secret key
+app.config['SECRET_KEY'] = 'your-secret-key-here'
+
+# Initialize LoginManager right after app creation
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'  # This tells Flask-Login which endpoint to redirect to
+
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
@@ -48,7 +54,7 @@ def get_song(song_id):
         return jsonify({'error': 'Song not found'}), 404
     return jsonify(dict(song))
 
-@app.route('/add-song')
+@app.route('/add_song')  # Change hyphen to underscore
 @login_required
 def add_song():
     return render_template('add_song.html')
@@ -93,7 +99,7 @@ def add_song_post():
     flash('Song added successfully!')
     return redirect(url_for('home'))
 
-@app.route('/edit-song')
+@app.route('/edit_song')  # Change hyphen to underscore
 @login_required
 def edit_song():
     song_id = request.args.get('id')
@@ -236,8 +242,10 @@ def authorize():
         # Store in session
         session['user_email'] = user_email
         
-        # Redirect to requested page or home
-        next_page = session.get('next', '/')
+        # Get next page from session
+        next_page = session.get('next_url', '/')
+        session.pop('next_url', None)  # Remove from session
+        
         return redirect(next_page)
     except Exception as e:
         print(f"Authorization error: {e}")
