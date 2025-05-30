@@ -3,6 +3,9 @@ import sqlite3
 import os
 from werkzeug.utils import secure_filename
 from database import init_db, get_db_connection
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from authlib.integrations.flask_client import OAuth
+from secret import Google_Client_ID, Google_secret
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-change-this'
@@ -46,6 +49,7 @@ def get_song(song_id):
     return jsonify(dict(song))
 
 @app.route('/add-song')
+@login_required
 def add_song():
     return render_template('add_song.html')
 
@@ -90,6 +94,7 @@ def add_song_post():
     return redirect(url_for('home'))
 
 @app.route('/edit-song')
+@login_required
 def edit_song():
     song_id = request.args.get('id')
     if song_id:
@@ -100,6 +105,7 @@ def edit_song():
     return render_template('edit_song.html')
 
 @app.route('/edit-song', methods=['POST'])
+@login_required
 def edit_song_post():
     song_id = request.form['song_id']
     title = request.form['title']
@@ -177,6 +183,61 @@ def delete_song(song_id):
     except Exception as e:
         print(f"Error deleting song: {e}")
         return jsonify({'error': 'Failed to delete song'}), 500
+
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+
+oauth = OAuth(app)
+app.config['GOOGLE_CLIENT_ID'] = Google_Client_ID
+app.config['GOOGLE_CLIENT_SECRET'] = Google_secret
+app.config['SECRET_KEY'] = 'my-secret-key-12343'  # Already set
+
+google = oauth.register(
+    name='google',
+    client_id=app.config['GOOGLE_CLIENT_ID'],
+    client_secret=app.config['GOOGLE_CLIENT_SECRET'],
+    access_token_url='https://oauth2.googleapis.com/token',
+    access_token_params=None,
+    authorize_url='https://accounts.google.com/o/oauth2/auth',
+    authorize_params=None,
+    api_base_url='https://www.googleapis.com/oauth2/v1/',
+    userinfo_endpoint='https://openidconnect.googleapis.com/v1/userinfo',
+    client_kwargs={'scope': 'openid email profile'},
+)
+
+class User(UserMixin):
+    def __init__(self, id_, name, email):
+        self.id = id_
+        self.name = name
+        self.email = email
+
+users = {}
+
+@login_manager.user_loader
+def load_user(user_id):
+    return users.get(user_id)
+
+@app.route('/login')
+def login():
+    redirect_uri = url_for('auth_callback', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+@app.route('/auth/callback')
+def auth_callback():
+    token = google.authorize_access_token()
+    resp = google.get('userinfo')
+    user_info = resp.json()
+    user_id = user_info['sub']
+    user = User(id_=user_id, name=user_info['name'], email=user_info['email'])
+    users[user_id] = user
+    login_user(user)
+    return redirect(url_for('home'))
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('home'))
 
 if __name__ == '__main__':
     # Create upload directories if they don't exist
