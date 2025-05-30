@@ -241,7 +241,18 @@ def authorize():
         print(f"Token received: {token}")  # Debug: Check if token is received
 
         # Attempt to parse the user info
-        user_info = google.parse_id_token(token)
+        # You MUST extract the nonce used during redirect
+        # It’s embedded in the _state_google_* key
+        nonce = token.get('userinfo', {}).get('nonce') or None
+        if not nonce:
+            # fallback: try to find nonce manually
+            for key in session:
+                if key.startswith('_state_google_') and 'nonce' in session[key]['data']:
+                    nonce = session[key]['data']['nonce']
+                    break
+
+        user_info = google.parse_id_token(token, nonce=nonce)
+        
         if not user_info:
             raise ValueError("No user info received from Google")
         session['debug_user_info'] = user_info  # Store user info in session for debugging
