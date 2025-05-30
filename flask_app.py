@@ -184,8 +184,25 @@ def delete_song(song_id):
         print(f"Error deleting song: {e}")
         return jsonify({'error': 'Failed to delete song'}), 500
 
-login_manager = LoginManager(app)
+# Add these imports if not present
+from flask_login import LoginManager, UserMixin, login_user, login_required
+
+# Add User class
+class User(UserMixin):
+    def __init__(self, email):
+        self.id = email
+        self.email = email
+
+# Initialize LoginManager
+login_manager = LoginManager()
+login_manager.init_app(app)
 login_manager.login_view = 'login'
+
+@login_manager.user_loader
+def load_user(email):
+    if email:
+        return User(email)
+    return None
 
 oauth = OAuth(app)
 google = oauth.register(
@@ -199,18 +216,6 @@ google = oauth.register(
     }
 )
 
-class User(UserMixin):
-    def __init__(self, id_, name, email):
-        self.id = id_
-        self.name = name
-        self.email = email
-
-users = {}
-
-@login_manager.user_loader
-def load_user(user_id):
-    return users.get(user_id)
-
 @app.route('/login')
 def login():
     redirect_uri = url_for('authorize', _external=True)
@@ -222,17 +227,26 @@ def authorize():
     try:
         token = google.authorize_access_token()
         user_info = google.parse_id_token(token)
-        session['user_email'] = user_info['email']
-        next_url = session.pop('next_url', '/')
-        return redirect(next_url)
+        user_email = user_info['email']
+        
+        # Create user and log them in
+        user = User(user_email)
+        login_user(user)
+        
+        # Store in session
+        session['user_email'] = user_email
+        
+        # Redirect to requested page or home
+        next_page = session.get('next', '/')
+        return redirect(next_page)
     except Exception as e:
         print(f"Authorization error: {e}")
         return redirect(url_for('home'))
 
 @app.route('/logout')
-@login_required
 def logout():
     logout_user()
+    session.pop('user_email', None)
     return redirect(url_for('home'))
 
 if __name__ == '__main__':
