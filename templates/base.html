@@ -22,6 +22,12 @@
             <li><a href="{{ url_for('edit_song') }}" class="nav-link {% if request.endpoint == 'edit_song' %}active{% endif %}">Edit Song</a></li>
             <li><a href="{{ url_for('dump') }}" class="nav-link {% if request.endpoint == 'dump' %}active{% endif %}">Dump</a></li>
         </ul>
+        {% if session.get('user_email') %}
+            <div class="user-info">
+                <span class="user-email">{{ session.get('user_email') }}</span>
+                <a href="{{ url_for('logout') }}" class="nav-link logout">Logout</a>
+            </div>
+        {% endif %}
     </nav>
 
     <!-- Flash Messages -->
