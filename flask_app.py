@@ -224,7 +224,7 @@ def delete_song(song_id):
 
 @app.route('/login')
 def login():
-    session.clear()  # Clear any existing session
+    #session.clear()  # Clear any existing session
     next_url = request.args.get('next', url_for('home'))
     session['next_url'] = next_url
     redirect_uri = url_for('authorize', _external=True)  # Ensure this matches Google Cloud Console
@@ -270,6 +270,10 @@ def authorize():
 
         # Redirect to the next URL
         next_url = session.pop('next_url', url_for('home'))
+
+        print("IS AUTH:", current_user.is_authenticated)
+        print("USER ID:", current_user.get_id())
+        print("SESSION:", dict(session))
         return redirect(next_url)
 
     except Exception as e:
