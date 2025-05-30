@@ -6,13 +6,14 @@ from database import init_db, get_db_connection
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from authlib.integrations.flask_client import OAuth
 from secret import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_DISCOVERY_URL
+from datetime import timedelta
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secure-secret-key-change-this'  # Change this!
 
 class User(UserMixin):
     def __init__(self, email):
-        self.id = email
+        self.id = email  # Flask-Login uses this as user_id
         self.email = email
 
 login_manager = LoginManager()
@@ -21,9 +22,13 @@ login_manager.login_view = 'login'
 
 @login_manager.user_loader
 def load_user(user_id):
-    if user_id:
-        return User(user_id)
-    return None
+    return User(user_id)  # Simple user loader that matches self.id
+
+# Add session persistence
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
+    app.permanent_session_lifetime = timedelta(days=31)
 
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
@@ -112,6 +117,7 @@ def add_song():
 @app.route('/edit_song', methods=['GET', 'POST'])
 @login_required
 def edit_song():
+    print("Accessing /edit_song, current_user:", current_user.is_authenticated)
     if request.method == 'GET':
         song_id = request.args.get('id')
         if song_id:
@@ -228,19 +234,20 @@ def authorize():
         
         # Create and login user
         user = User(user_email)
-        login_user(user, remember=True)  # Add remember=True
+        login_user(user)  # Login the user
         
-        # Store email in session
+        # Store in session
         session['user_email'] = user_email
         
-        # Get the next URL from session
-        next_url = session.pop('next_url', '/')
+        # Debug prints
+        print("Logged in user:", current_user.is_authenticated)
+        print("Session:", dict(session))
         
-        flash('Successfully logged in!')
+        # Get next URL from session
+        next_url = session.pop('next_url', '/')
         return redirect(next_url)
     except Exception as e:
         print(f"Authorization error: {e}")
-        flash('Login failed. Please try again.')
         return redirect(url_for('home'))
 
 @app.route('/logout')
