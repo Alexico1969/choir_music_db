@@ -231,13 +231,16 @@ def login():
     session.clear()  # Clear any existing session
     next_url = request.args.get('next', url_for('home'))
     session['next_url'] = next_url
-    return google.authorize_redirect(url_for('authorize', _external=True))
+    redirect_uri = url_for('authorize', _external=True)  # Ensure this matches Google Cloud Console
+    return google.authorize_redirect(redirect_uri)
 
 @app.route('/authorize')
 def authorize():
     try:
         token = google.authorize_access_token()
+        print(f"Token received: {token}")  # Debug: Check if token is received
         user_info = google.parse_id_token(token)
+        print(f"User info: {user_info}")  # Debug: Check user info
         user_email = user_info.get('email')
         
         if not user_email:
