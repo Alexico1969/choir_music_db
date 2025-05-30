@@ -237,29 +237,36 @@ def login():
 @app.route('/authorize')
 def authorize():
     try:
+        # Attempt to retrieve the token
         token = google.authorize_access_token()
         print(f"Token received: {token}")  # Debug: Check if token is received
+
+        # Attempt to parse the user info
         user_info = google.parse_id_token(token)
         print(f"User info: {user_info}")  # Debug: Check user info
+
+        # Extract the email
         user_email = user_info.get('email')
-        
         if not user_email:
             raise ValueError("No email provided by Google")
-            
+
+        # Create and log in the user
         user = User(user_email)
         login_user(user, remember=True)
         session['user_email'] = user_email
         session.permanent = True
-        
+
         # Debug logging
         print(f"Login successful for: {user_email}")
         print(f"Session data: {dict(session)}")
         print(f"User authenticated: {current_user.is_authenticated}")
-        
+
+        # Redirect to the next URL
         next_url = session.pop('next_url', url_for('home'))
         return redirect(next_url)
-        
+
     except Exception as e:
+        # Log the error for debugging
         print(f"Authorization failed: {str(e)}")
         flash('Login failed. Please try again.')
         return redirect(url_for('login'))
