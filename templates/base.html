@@ -46,6 +46,16 @@
 
     {% block content %}{% endblock %}
 
+    <!-- Only show to authenticated users -->
+    {% if current_user.is_authenticated %}
+        <a href="{{ url_for('add_song') }}" class="btn btn-primary">Add Song</a>
+        {% if song %}
+            <a href="{{ url_for('edit_song', id=song.id) }}" class="btn btn-secondary">Edit</a>
+        {% endif %}
+    {% else %}
+        <p class="text-muted">Please log in to add or edit songs.</p>
+    {% endif %}
+
     <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
     {% if request.endpoint == 'edit_song' %}
     <script src="{{ url_for('static', filename='js/edit.js') }}"></script>
