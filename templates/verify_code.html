@@ -1,0 +1,20 @@
+    {% extends "base.html" %}
+
+    {% block content %}
+    <div class="container mt-5">
+        <h1 class="text-center">Enter Access Code</h1>
+        <p class="text-center text-muted">Please enter the access code to proceed.</p>
+        
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <form method="POST" class="card p-4 shadow-sm">
+                    <div class="form-group">
+                        <label for="code">Access Code</label>
+                        <input type="password" id="code" name="code" class="form-control" placeholder="Enter code" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block mt-3">Submit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endblock %}

@@ -5,6 +5,7 @@ from werkzeug.utils import secure_filename
 from database import init_db, get_db_connection
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from datetime import timedelta
+from secret import code
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-fixed-secret-key-here'  # Use a fixed key instead of random
@@ -85,9 +86,13 @@ def get_song(song_id):
 
 @app.route('/add_song', methods=['GET', 'POST'])
 def add_song():
+    if 'auth_code' not in session or session['auth_code'] != code:
+        flash('Please enter the correct code to access this page.')
+        return redirect(url_for('verify_code', next=request.url))
+
     if request.method == 'GET':
         return render_template('add_song.html')
-    
+
     # POST handling
     title = request.form['title']
     composer = request.form['composer']
@@ -95,23 +100,23 @@ def add_song():
     key_signature = request.form['key']
     difficulty = request.form['difficulty']
     description = request.form.get('description', '')
-    
+
     # Handle file uploads
     pdf_filename = None
     audio_filename = None
-    
+
     if 'pdf_file' in request.files:
         pdf_file = request.files['pdf_file']
         if pdf_file and allowed_file(pdf_file.filename):
             pdf_filename = secure_filename(pdf_file.filename)
             pdf_file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'pdfs', pdf_filename))
-    
+
     if 'audio_file' in request.files:
         audio_file = request.files['audio_file']
         if audio_file and allowed_file(audio_file.filename):
             audio_filename = secure_filename(audio_file.filename)
             audio_file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'audio', audio_filename))
-    
+
     # Insert into database
     conn = get_db_connection()
     conn.execute(
@@ -123,15 +128,17 @@ def add_song():
     )
     conn.commit()
     conn.close()
-    
+
     flash('Song added successfully!')
     return redirect(url_for('home'))
 
+
 @app.route('/edit_song', methods=['GET', 'POST'])
-@login_required
-@nocache
 def edit_song():
-    print("Accessing /edit_song, current_user:", current_user.is_authenticated)
+    if 'auth_code' not in session or session['auth_code'] != code:
+        flash('Please enter the correct code to access this page.')
+        return redirect(url_for('verify_code', next=request.url))
+
     if request.method == 'GET':
         song_id = request.args.get('id')
         if song_id:
@@ -140,7 +147,7 @@ def edit_song():
             conn.close()
             return render_template('edit_song.html', song=song)
         return render_template('edit_song.html')
-    
+
     # POST handling
     song_id = request.form['song_id']
     title = request.form['title']
@@ -149,23 +156,23 @@ def edit_song():
     key_signature = request.form['key']
     difficulty = request.form['difficulty']
     description = request.form.get('description', '')
-    
+
     # Handle file uploads (similar to add_song)
     pdf_filename = request.form.get('current_pdf')
     audio_filename = request.form.get('current_audio')
-    
+
     if 'pdf_file' in request.files:
         pdf_file = request.files['pdf_file']
         if pdf_file and allowed_file(pdf_file.filename):
             pdf_filename = secure_filename(pdf_file.filename)
             pdf_file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'pdfs', pdf_filename))
-    
+
     if 'audio_file' in request.files:
         audio_file = request.files['audio_file']
         if audio_file and allowed_file(audio_file.filename):
             audio_filename = secure_filename(audio_file.filename)
             audio_file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'audio', audio_filename))
-    
+
     # Update database
     conn = get_db_connection()
     conn.execute(
@@ -177,7 +184,7 @@ def edit_song():
     )
     conn.commit()
     conn.close()
-    
+
     flash('Song updated successfully!')
     return redirect(url_for('home'))
 
@@ -219,22 +226,6 @@ def delete_song(song_id):
         print(f"Error deleting song: {e}")
         return jsonify({'error': 'Failed to delete song'}), 500
 
-@app.route('/login')
-def login():
-    next_url = request.args.get('next', url_for('home'))
-    session['next_url'] = next_url
-    redirect_uri = url_for('authorize', _external=True)
-    return google.authorize_redirect(redirect_uri)
-
-@app.route('/authorize')
-def authorize():
-    try:
-        # Google login logic
-        pass
-    except Exception as e:
-        flash('Login failed. Please try again.')
-        return redirect(url_for('login'))
-
 @app.route('/logout')
 def logout():
     logout_user()
@@ -259,6 +250,27 @@ def add_header(response):
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '-1'
     return response
+
+@app.route('/verify_code', methods=['GET', 'POST'])
+def verify_code():
+    if request.method == 'POST':
+        entered_code = request.form['code']
+        if entered_code == code:
+            session['auth_code'] = code
+            next_url = request.args.get('next') or url_for('home')
+            return redirect(next_url)
+        else:
+            flash('Incorrect code. Please try again.')
+            return redirect(url_for('verify_code', next=request.args.get('next')))
+
+    return render_template('verify_code.html')
+
+@app.route('/reset')
+def reset_permissions():
+    # Clear the auth_code from the session
+    session.pop('auth_code', None)
+    flash('Permissions have been reset. You will need to re-enter the access code to add or edit songs.')
+    return redirect(url_for('home'))
 
 if __name__ == '__main__':
     # Create upload directories if they don't exist
