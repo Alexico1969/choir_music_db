@@ -257,6 +257,7 @@ def update_song(song_id):
     # Handle file uploads
     pdf_filename = None
     audio_filename = None
+    lyrics_filename = None
 
     if 'pdf_file' in request.files:
         pdf_file = request.files['pdf_file']
@@ -270,13 +271,30 @@ def update_song(song_id):
             audio_filename = secure_filename(audio_file.filename)
             audio_file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'audio', audio_filename))
 
-    # Update the database
+    if 'lyrics_file' in request.files:
+        lyrics_file = request.files['lyrics_file']
+        if lyrics_file and allowed_file(lyrics_file.filename):
+            lyrics_filename = secure_filename(lyrics_file.filename)
+            lyrics_file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'lyrics', lyrics_filename))
+
     conn = get_db_connection()
+    # Get the current song info
+    song = conn.execute('SELECT * FROM songs WHERE id = ?', (song_id,)).fetchone()
+
+    # Use the old filename if no new file was uploaded
+    if not pdf_filename:
+        pdf_filename = song['pdf_filename']
+    if not audio_filename:
+        audio_filename = song['audio_filename']
+    if not lyrics_filename:
+        lyrics_filename = song['lyrics_filename']
+
+    # Now update, using the correct filename
     conn.execute(
         '''UPDATE songs
-           SET title = ?, composer = ?, arrangement = ?, key_signature = ?, difficulty = ?, description = ?, pdf_filename = ?, audio_filename = ?
+           SET title = ?, composer = ?, arrangement = ?, key_signature = ?, difficulty = ?, description = ?, pdf_filename = ?, audio_filename = ?, lyrics_filename = ?
            WHERE id = ?''',
-        (title, composer, arrangement, key_signature, difficulty, description, pdf_filename, audio_filename, song_id)
+        (title, composer, arrangement, key_signature, difficulty, description, pdf_filename, audio_filename, lyrics_filename, song_id)
     )
     conn.commit()
     conn.close()
