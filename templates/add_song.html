@@ -58,6 +58,11 @@
                                 <input type="file" class="form-control" id="audio_file" name="audio_file" accept=".mp3,.wav">
                             </div>
                             
+                            <div class="mb-3">
+                                <label for="lyrics_file" class="form-label">Lyrics PDF</label>
+                                <input type="file" class="form-control" id="lyrics_file" name="lyrics_file">
+                            </div>
+                            
                             <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                                 <a href="{{ url_for('home') }}" class="btn btn-secondary me-md-2">Cancel</a>
                                 <button type="submit" class="btn btn-primary">Add Song</button>

@@ -3,6 +3,21 @@ import os
 
 DATABASE = 'instance/choir_music.db'
 
+def run_once():
+    # run ALTER TABLE songs ADD COLUMN lyrics_filename TEXT; once
+    conn = get_db_connection()
+    try:
+        conn.execute('ALTER TABLE songs ADD COLUMN lyrics_filename TEXT;')
+        conn.commit()
+    except sqlite3.OperationalError:
+        # If the column already exists, ignore the error
+        pass
+    finally:
+        conn.close()
+
+    
+
+
 def get_db_connection():
     """Get a database connection with row factory for dict-like access"""
     conn = sqlite3.connect(DATABASE)
@@ -55,5 +70,28 @@ def init_db():
             sample_songs
         )
     
+    conn.commit()
+    conn.close()
+
+def insert_song(title, composer, arrangement, key_signature, difficulty, description, pdf_filename, audio_filename, lyrics_filename):
+    conn = get_db_connection()
+    conn.execute(
+        '''INSERT INTO songs (title, composer, arrangement, key_signature, difficulty, 
+           description, pdf_filename, audio_filename, lyrics_filename) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+        (title, composer, arrangement, key_signature, difficulty, description, 
+         pdf_filename, audio_filename, lyrics_filename)
+    )
+    conn.commit()
+    conn.close()
+
+def update_song(song_id, title, composer, arrangement, key_signature, difficulty, description, pdf_filename, audio_filename, lyrics_filename):
+    conn = get_db_connection()
+    conn.execute(
+        '''UPDATE songs
+           SET title = ?, composer = ?, arrangement = ?, key_signature = ?, difficulty = ?, description = ?, pdf_filename = ?, audio_filename = ?, lyrics_filename = ?
+           WHERE id = ?''',
+        (title, composer, arrangement, key_signature, difficulty, description, pdf_filename, audio_filename, lyrics_filename, song_id)
+    )
     conn.commit()
     conn.close()

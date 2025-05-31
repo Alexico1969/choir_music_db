@@ -2,13 +2,15 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 import sqlite3
 import os
 from werkzeug.utils import secure_filename
-from database import init_db, get_db_connection
+from database import init_db, get_db_connection, run_once
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from datetime import timedelta
 from secret import code
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-fixed-secret-key-here'  # Use a fixed key instead of random
+
+#run_once()
 
 class User(UserMixin):
     def __init__(self, email):
@@ -108,6 +110,7 @@ def add_song():
     # Handle file uploads
     pdf_filename = None
     audio_filename = None
+    lyrics_filename = None
 
     if 'pdf_file' in request.files:
         pdf_file = request.files['pdf_file']
@@ -120,6 +123,12 @@ def add_song():
         if audio_file and allowed_file(audio_file.filename):
             audio_filename = secure_filename(audio_file.filename)
             audio_file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'audio', audio_filename))
+
+    if 'lyrics_file' in request.files:
+        lyrics_file = request.files['lyrics_file']
+        if lyrics_file and allowed_file(lyrics_file.filename):
+            lyrics_filename = secure_filename(lyrics_file.filename)
+            lyrics_file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'lyrics', lyrics_filename))
 
     # Insert into database
     conn = get_db_connection()
@@ -279,6 +288,7 @@ if __name__ == '__main__':
     # Create upload directories if they don't exist
     os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'pdfs'), exist_ok=True)
     os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'audio'), exist_ok=True)
+    os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'lyrics'), exist_ok=True)
     
     app.run(debug=True)
 
