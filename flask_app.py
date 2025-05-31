@@ -137,6 +137,10 @@ def add_song():
 
 @app.route('/edit_song', methods=['GET'])
 def edit_song():
+    if 'auth_code' not in session or session['auth_code'] != code:
+        flash('Please enter the correct code to edit songs.')
+        return redirect(url_for('verify_code', next=request.url))
+
     conn = get_db_connection()
     songs = conn.execute('SELECT * FROM songs ORDER BY title').fetchall()
     conn.close()
