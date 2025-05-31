@@ -44,8 +44,10 @@ def load_user(user_id):
 # Add session persistence
 @app.before_request
 def make_session_permanent():
-    session.permanent = True
-    app.permanent_session_lifetime = timedelta(days=31)
+    if current_user.is_authenticated:
+        session.permanent = True
+        app.permanent_session_lifetime = timedelta(days=31)
+
 
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
