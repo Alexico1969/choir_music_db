@@ -63,6 +63,11 @@ app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 ALLOWED_EXTENSIONS = {'pdf', 'mp3', 'wav'}
+ALLOWED_USERS = [
+    "avanwinkel@molloyhs.org",
+    "jsheehan@molloyhs.org",
+    "alexicoo@gmail.com"
+]
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -255,18 +260,7 @@ def authorize():
         print(f"Token received: {token}")  # Debug: Check if token is received
 
         # Attempt to parse the user info
-        # You MUST extract the nonce used during redirect
-        # It’s embedded in the _state_google_* key
-        nonce = token.get('userinfo', {}).get('nonce') or None
-        if not nonce:
-            # fallback: try to find nonce manually
-            for key in session:
-                if key.startswith('_state_google_') and 'nonce' in session[key]['data']:
-                    nonce = session[key]['data']['nonce']
-                    break
-
-        user_info = google.parse_id_token(token, nonce=nonce)
-        
+        user_info = google.parse_id_token(token)
         if not user_info:
             raise ValueError("No user info received from Google")
         session['debug_user_info'] = user_info  # Store user info in session for debugging
@@ -276,6 +270,11 @@ def authorize():
         user_email = user_info.get('email')
         if not user_email:
             raise ValueError("No email provided by Google")
+
+        # Check if the email is in the allowed list
+        if user_email not in ALLOWED_USERS:
+            flash('You are not authorized to log in. Please contact the administrator.')
+            return redirect(url_for('access_denied'))
 
         # Create and log in the user
         user = User(user_email)
@@ -295,10 +294,6 @@ def authorize():
 
         # Redirect to the next URL
         next_url = session.pop('next_url', url_for('home'))
-
-        print("IS AUTH:", current_user.is_authenticated)
-        print("USER ID:", current_user.get_id())
-        print("SESSION:", dict(session))
         return redirect(next_url)
 
     except Exception as e:
@@ -329,6 +324,10 @@ def debug():
         'debug_login': session.get('debug_login'),
         'debug_error': session.get('debug_error')
     }
+
+@app.route('/access_denied')
+def access_denied():
+    return render_template('access_denied.html')
 
 @app.after_request
 def add_header(response):
