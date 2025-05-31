@@ -298,9 +298,9 @@ def authorize():
 
 @app.route('/logout')
 def logout():
-    logout_user()
-    session.clear()  # Clear entire session
-    flash('You have been logged out.')
+    logout_user()  # Logs out the user from Flask-Login
+    session.clear()  # Clear the entire session
+    flash('You have been logged out. Please log in again to access protected features.')
     return redirect(url_for('home'))
 
 @app.route('/debug')
@@ -314,6 +314,13 @@ def debug():
         'debug_login': session.get('debug_login'),
         'debug_error': session.get('debug_error')
     }
+
+@app.after_request
+def add_header(response):
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '-1'
+    return response
 
 if __name__ == '__main__':
     # Create upload directories if they don't exist
