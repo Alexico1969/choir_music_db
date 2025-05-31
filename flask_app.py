@@ -67,14 +67,16 @@ def get_songs(letter_range=None):
     conn = get_db_connection()
     if letter_range:
         start, end = letter_range.split('-')
+        # Only get songs where the first letter is in the range (case-insensitive)
         songs = conn.execute(
-            'SELECT * FROM songs WHERE title >= ? AND title <= ? ORDER BY title',
-            (start, end)
+            '''SELECT * FROM songs
+               WHERE UPPER(SUBSTR(title, 1, 1)) >= ? AND UPPER(SUBSTR(title, 1, 1)) <= ?
+               ORDER BY title''',
+            (start.upper(), end.upper())
         ).fetchall()
     else:
         songs = conn.execute('SELECT * FROM songs ORDER BY title').fetchall()
     conn.close()
-    
     return jsonify([dict(song) for song in songs])
 
 @app.route('/api/song/<int:song_id>')
