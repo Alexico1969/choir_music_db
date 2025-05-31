@@ -4,25 +4,10 @@ import os
 from werkzeug.utils import secure_filename
 from database import init_db, get_db_connection
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from authlib.integrations.flask_client import OAuth
-from secret import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_DISCOVERY_URL
 from datetime import timedelta
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-fixed-secret-key-here'  # Use a fixed key instead of random
-
-# Move OAuth config right after app creation
-oauth = OAuth(app)
-google = oauth.register(
-    name='google',
-    server_metadata_url=GOOGLE_DISCOVERY_URL,
-    client_id=GOOGLE_CLIENT_ID,
-    client_secret=GOOGLE_CLIENT_SECRET,
-    client_kwargs={
-        'scope': 'openid email profile',
-        'prompt': 'select_account'  # Force Google account selection
-    }
-)
 
 class User(UserMixin):
     def __init__(self, email):
@@ -63,11 +48,6 @@ app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 ALLOWED_EXTENSIONS = {'pdf', 'mp3', 'wav'}
-ALLOWED_USERS = [
-    "avanwinkel@molloyhs.org",
-    "jsheehan@molloyhs.org",
-    "alexicoo@gmail.com"
-]
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -104,8 +84,6 @@ def get_song(song_id):
     return jsonify(dict(song))
 
 @app.route('/add_song', methods=['GET', 'POST'])
-@login_required
-@nocache
 def add_song():
     if request.method == 'GET':
         return render_template('add_song.html')
@@ -243,79 +221,17 @@ def delete_song(song_id):
 
 @app.route('/login')
 def login():
-    #session.clear()  # Clear any existing session
     next_url = request.args.get('next', url_for('home'))
     session['next_url'] = next_url
-    redirect_uri = url_for('authorize', _external=True)  # Ensure this matches Google Cloud Console
+    redirect_uri = url_for('authorize', _external=True)
     return google.authorize_redirect(redirect_uri)
 
 @app.route('/authorize')
 def authorize():
     try:
-        # Attempt to retrieve the token
-        token = google.authorize_access_token()
-        if not token:
-            raise ValueError("No token received from Google")
-        session['debug_token'] = token  # Store token in session for debugging
-        print(f"Token received: {token}")  # Debug: Check if token is received
-
-        # Attempt to parse the user info
-        # Attempt to extract the nonce from the session
-        nonce = None
-        for key, value in session.items():
-            if key.startswith('_state_google_'):
-                try:
-                    maybe_nonce = value['data'].get('nonce')
-                    if maybe_nonce:
-                        nonce = maybe_nonce
-                        break
-                except Exception:
-                    continue
-
-        if not nonce:
-            raise ValueError("Nonce not found in session")
-
-        user_info = google.parse_id_token(token, nonce=nonce)
-
-        if not user_info:
-            raise ValueError("No user info received from Google")
-        session['debug_user_info'] = user_info  # Store user info in session for debugging
-        print(f"User info: {user_info}")  # Debug: Check user info
-
-        # Extract the email
-        user_email = user_info.get('email')
-        if not user_email:
-            raise ValueError("No email provided by Google")
-
-        # Check if the email is in the allowed list
-        if user_email not in ALLOWED_USERS:
-            flash('You are not authorized to log in. Please contact the administrator.')
-            return redirect(url_for('access_denied'))
-
-        # Create and log in the user
-        user = User(user_email)
-        login_user(user, remember=True)
-        session['user_email'] = user_email
-        session.permanent = True
-
-        # Debug logging
-        session['debug_login'] = {
-            'user_email': user_email,
-            'authenticated': current_user.is_authenticated,
-            'session_data': dict(session)
-        }
-        print(f"Login successful for: {user_email}")
-        print(f"Session data: {dict(session)}")
-        print(f"User authenticated: {current_user.is_authenticated}")
-
-        # Redirect to the next URL
-        next_url = session.pop('next_url', url_for('home'))
-        return redirect(next_url)
-
+        # Google login logic
+        pass
     except Exception as e:
-        # Log the error for debugging
-        session['debug_error'] = str(e)  # Store error in session for debugging
-        print(f"Authorization failed: {str(e)}")
         flash('Login failed. Please try again.')
         return redirect(url_for('login'))
 
@@ -335,15 +251,7 @@ def debug():
         'authenticated': current_user.is_authenticated,
         'user_id': current_user.get_id() if current_user.is_authenticated else None,
         'session': dict(session),
-        'debug_token': session.get('debug_token'),
-        'debug_user_info': session.get('debug_user_info'),
-        'debug_login': session.get('debug_login'),
-        'debug_error': session.get('debug_error')
     }
-
-@app.route('/access_denied')
-def access_denied():
-    return render_template('access_denied.html')
 
 @app.after_request
 def add_header(response):
