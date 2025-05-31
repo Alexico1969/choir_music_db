@@ -260,7 +260,23 @@ def authorize():
         print(f"Token received: {token}")  # Debug: Check if token is received
 
         # Attempt to parse the user info
-        user_info = google.parse_id_token(token)
+        # Attempt to extract the nonce from the session
+        nonce = None
+        for key, value in session.items():
+            if key.startswith('_state_google_'):
+                try:
+                    maybe_nonce = value['data'].get('nonce')
+                    if maybe_nonce:
+                        nonce = maybe_nonce
+                        break
+                except Exception:
+                    continue
+
+        if not nonce:
+            raise ValueError("Nonce not found in session")
+
+        user_info = google.parse_id_token(token, nonce=nonce)
+
         if not user_info:
             raise ValueError("No user info received from Google")
         session['debug_user_info'] = user_info  # Store user info in session for debugging
