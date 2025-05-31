@@ -310,10 +310,13 @@ def authorize():
 
 @app.route('/logout')
 def logout():
-    logout_user()  # Logs out the user from Flask-Login
-    session.clear()  # Clear the entire session
-    flash('You have been logged out. Please log in again to access protected features.')
-    return redirect(url_for('home'))
+    logout_user()
+    session.clear()
+    flash('You have been logged out.')
+    response = redirect(url_for('home'))
+    response.set_cookie('session', '', expires=0)
+    return response
+
 
 @app.route('/debug')
 def debug():
