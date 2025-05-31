@@ -61,25 +61,27 @@ with app.app_context():
 def home():
     return render_template('home.html')
 
-@app.route('/api/songs/<letter_range>')
-def get_songs_in_range(letter_range):
-    """API endpoint to get songs by letter range"""
-    start, end = letter_range.split('-')
+@app.route('/api/songs', methods=['GET'])
+@app.route('/api/songs/<letter_range>', methods=['GET'])
+def get_songs(letter_range=None):
     conn = get_db_connection()
-    songs = conn.execute(
-        'SELECT * FROM songs WHERE title >= ? AND title < ? ORDER BY title',
-        (start, chr(ord(end) + 1))
-    ).fetchall()
+    if letter_range:
+        start, end = letter_range.split('-')
+        songs = conn.execute(
+            'SELECT * FROM songs WHERE title >= ? AND title <= ? ORDER BY title',
+            (start, end)
+        ).fetchall()
+    else:
+        songs = conn.execute('SELECT * FROM songs ORDER BY title').fetchall()
     conn.close()
+    
     return jsonify([dict(song) for song in songs])
 
 @app.route('/api/song/<int:song_id>')
 def get_song(song_id):
-    """API endpoint to get detailed song information"""
     conn = get_db_connection()
     song = conn.execute('SELECT * FROM songs WHERE id = ?', (song_id,)).fetchone()
     conn.close()
-    
     if song is None:
         return jsonify({'error': 'Song not found'}), 404
     return jsonify(dict(song))
@@ -133,60 +135,12 @@ def add_song():
     return redirect(url_for('home'))
 
 
-@app.route('/edit_song', methods=['GET', 'POST'])
+@app.route('/edit_song', methods=['GET'])
 def edit_song():
-    if 'auth_code' not in session or session['auth_code'] != code:
-        flash('Please enter the correct code to access this page.')
-        return redirect(url_for('verify_code', next=request.url))
-
-    if request.method == 'GET':
-        song_id = request.args.get('id')
-        if song_id:
-            conn = get_db_connection()
-            song = conn.execute('SELECT * FROM songs WHERE id = ?', (song_id,)).fetchone()
-            conn.close()
-            return render_template('edit_song.html', song=song)
-        return render_template('edit_song.html')
-
-    # POST handling
-    song_id = request.form['song_id']
-    title = request.form['title']
-    composer = request.form['composer']
-    arrangement = request.form['arrangement']
-    key_signature = request.form['key']
-    difficulty = request.form['difficulty']
-    description = request.form.get('description', '')
-
-    # Handle file uploads (similar to add_song)
-    pdf_filename = request.form.get('current_pdf')
-    audio_filename = request.form.get('current_audio')
-
-    if 'pdf_file' in request.files:
-        pdf_file = request.files['pdf_file']
-        if pdf_file and allowed_file(pdf_file.filename):
-            pdf_filename = secure_filename(pdf_file.filename)
-            pdf_file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'pdfs', pdf_filename))
-
-    if 'audio_file' in request.files:
-        audio_file = request.files['audio_file']
-        if audio_file and allowed_file(audio_file.filename):
-            audio_filename = secure_filename(audio_file.filename)
-            audio_file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'audio', audio_filename))
-
-    # Update database
     conn = get_db_connection()
-    conn.execute(
-        '''UPDATE songs SET title=?, composer=?, arrangement=?, key_signature=?, 
-           difficulty=?, description=?, pdf_filename=?, audio_filename=? 
-           WHERE id=?''',
-        (title, composer, arrangement, key_signature, difficulty, description, 
-         pdf_filename, audio_filename, song_id)
-    )
-    conn.commit()
+    songs = conn.execute('SELECT * FROM songs ORDER BY title').fetchall()
     conn.close()
-
-    flash('Song updated successfully!')
-    return redirect(url_for('home'))
+    return render_template('edit_song.html', songs=songs)
 
 @app.route('/dump')
 def dump():
@@ -271,6 +225,49 @@ def reset_permissions():
     session.pop('auth_code', None)
     flash('Permissions have been reset. You will need to re-enter the access code to add or edit songs.')
     return redirect(url_for('home'))
+
+@app.route('/edit_song/<int:song_id>', methods=['POST'])
+def update_song(song_id):
+    if 'auth_code' not in session or session['auth_code'] != code:
+        flash('Please enter the correct code to edit this song.')
+        return redirect(url_for('verify_code', next=request.url))
+
+    title = request.form['title']
+    composer = request.form['composer']
+    arrangement = request.form['arrangement']
+    key_signature = request.form['key']
+    difficulty = request.form['difficulty']
+    description = request.form['description']
+
+    # Handle file uploads
+    pdf_filename = None
+    audio_filename = None
+
+    if 'pdf_file' in request.files:
+        pdf_file = request.files['pdf_file']
+        if pdf_file and allowed_file(pdf_file.filename):
+            pdf_filename = secure_filename(pdf_file.filename)
+            pdf_file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'pdfs', pdf_filename))
+
+    if 'audio_file' in request.files:
+        audio_file = request.files['audio_file']
+        if audio_file and allowed_file(audio_file.filename):
+            audio_filename = secure_filename(audio_file.filename)
+            audio_file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'audio', audio_filename))
+
+    # Update the database
+    conn = get_db_connection()
+    conn.execute(
+        '''UPDATE songs
+           SET title = ?, composer = ?, arrangement = ?, key_signature = ?, difficulty = ?, description = ?, pdf_filename = ?, audio_filename = ?
+           WHERE id = ?''',
+        (title, composer, arrangement, key_signature, difficulty, description, pdf_filename, audio_filename, song_id)
+    )
+    conn.commit()
+    conn.close()
+
+    flash('Song updated successfully!')
+    return redirect(url_for('edit_song'))
 
 if __name__ == '__main__':
     # Create upload directories if they don't exist

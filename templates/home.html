@@ -6,31 +6,140 @@
     <aside class="left-menu">
         <h3>Browse Songs</h3>
         <div class="btn-group-vertical w-100" role="group">
-            <button class="btn btn-outline-primary letter-range-btn" data-range="A-F">A-F</button>
-            <button class="btn btn-outline-primary letter-range-btn" data-range="G-M">G-M</button>
-            <button class="btn btn-outline-primary letter-range-btn" data-range="N-S">N-S</button>
-            <button class="btn btn-outline-primary letter-range-btn" data-range="T-Z">T-Z</button>
+            <button class="btn btn-secondary" data-range="A-F">A-F</button>
+            <button class="btn btn-secondary" data-range="G-M">G-M</button>
+            <button class="btn btn-secondary" data-range="N-S">N-S</button>
+            <button class="btn btn-secondary" data-range="T-Z">T-Z</button>
         </div>
     </aside>
 
     <!-- Middle Column -->
     <div class="songs-column">
         <div class="song-list">
-            <div class="initial-message">
-                <h3>Browse Songs</h3>
-                <p>Click one of the buttons under "Browse Songs" to view the song list</p>
-            </div>
+            {% for song in songs %}
+                <div class="song-item-container">
+                    <button class="btn btn-link song-item w-100 text-start" data-id="{{ song.id }}">{{ song.title }}</button>
+                </div>
+            {% endfor %}
         </div>
     </div>
 
     <!-- Right Column -->
     <div class="details-column">
-        <div class="song-display">
+        <div class="edit-form-container">
             <div class="initial-message">
                 <h3>Select a Song</h3>
-                <p>Click on a song to view its details</p>
+                <p>Click a song from the list to view its details.</p>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Handle alphabet range buttons
+        const rangeButtons = document.querySelectorAll('.btn-group-vertical .btn');
+        rangeButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const range = this.getAttribute('data-range');
+                console.log(`Range button clicked: ${range}`);
+                showSpinner();
+
+                fetch(`/api/songs/${range}`)
+                    .then(response => {
+                        if (!response.ok) throw new Error('Network response was not ok');
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Fetched songs:', data);
+                        const songList = document.querySelector('.song-list');
+                        songList.innerHTML = '';
+
+                        // Create buttons for each song
+                        data.forEach(song => {
+                            const container = document.createElement('div');
+                            container.classList.add('song-item-container');
+                            
+                            const button = document.createElement('button');
+                            button.classList.add('btn', 'btn-link', 'song-item', 'w-100', 'text-start');
+                            button.setAttribute('data-id', song.id);
+                            button.textContent = song.title;
+                            button.addEventListener('click', () => loadSongDetails(song.id));
+                            
+                            container.appendChild(button);
+                            songList.appendChild(container);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error fetching songs:', error);
+                        const songList = document.querySelector('.song-list');
+                        songList.innerHTML = '<p class="text-danger">Failed to load songs. Please try again.</p>';
+                    })
+                    .finally(() => {
+                        hideSpinner();
+                    });
+            });
+        });
+
+        // Handle song item clicks
+        function loadSongDetails(songId) {
+            console.log(`Loading details for song ID: ${songId}`);
+            showSpinner();
+
+            fetch(`/api/song/${songId}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Fetched song details:', data);
+                    const detailsColumn = document.querySelector('.details-column');
+                    
+                    // Create the HTML for file buttons
+                    const pdfButton = data.pdf_filename ? 
+                        `<a href="/static/uploads/pdfs/${data.pdf_filename}" class="btn btn-primary me-2" target="_blank">
+                            <i class="bi bi-file-pdf"></i> PDF
+                         </a>` : '';
+                    
+                    const audioButton = data.audio_filename ? 
+                        `<a href="/static/uploads/audio/${data.audio_filename}" class="btn btn-success" target="_blank">
+                            <i class="bi bi-file-music"></i> MP3
+                         </a>` : '';
+
+                    detailsColumn.innerHTML = `
+                        <div class="edit-form-container">
+                            <h3>${data.title}</h3>
+                            <p><strong>Composer:</strong> ${data.composer || 'N/A'}</p>
+                            <p><strong>Arrangement:</strong> ${data.arrangement || 'N/A'}</p>
+                            <p><strong>Key Signature:</strong> ${data.key_signature || 'N/A'}</p>
+                            <p><strong>Difficulty:</strong> ${data.difficulty || 'N/A'}</p>
+                            <p><strong>Description:</strong> ${data.description || 'No description available'}</p>
+                            
+                            <div class="mt-3">
+                                ${pdfButton}
+                                ${audioButton}
+                            </div>
+                        </div>
+                    `;
+                })
+                .catch(error => {
+                    console.error('Error fetching song details:', error);
+                    const detailsColumn = document.querySelector('.details-column');
+                    detailsColumn.innerHTML = '<p class="text-danger">Failed to load song details. Please try again.</p>';
+                })
+                .finally(() => {
+                    hideSpinner();
+                });
+        }
+
+        // Add click handlers to initial song list
+        const initialSongButtons = document.querySelectorAll('.song-item');
+        initialSongButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const songId = this.getAttribute('data-id');
+                loadSongDetails(songId);
+            });
+        });
+    });
+</script>
 {% endblock %}

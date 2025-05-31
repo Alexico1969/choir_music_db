@@ -8,31 +8,157 @@
     <aside class="left-menu">
         <h3>Browse Songs</h3>
         <div class="btn-group-vertical w-100" role="group">
-            <button class="btn btn-outline-primary letter-range-btn" data-range="A-F">A-F</button>
-            <button class="btn btn-outline-primary letter-range-btn" data-range="G-M">G-M</button>
-            <button class="btn btn-outline-primary letter-range-btn" data-range="N-S">N-S</button>
-            <button class="btn btn-outline-primary letter-range-btn" data-range="T-Z">T-Z</button>
+            <button class="btn btn-secondary" data-range="A-F">A-F</button>
+            <button class="btn btn-secondary" data-range="G-M">G-M</button>
+            <button class="btn btn-secondary" data-range="N-S">N-S</button>
+            <button class="btn btn-secondary" data-range="T-Z">T-Z</button>
         </div>
     </aside>
 
     <!-- Middle Column -->
     <div class="songs-column">
         <div class="song-list">
-            <div class="initial-message">
-                <h3>Browse Songs</h3>
-                <p>Click one of the buttons under "Browse Songs" to view the song list</p>
-            </div>
+            {% for song in songs %}
+                <div class="song-item-container">
+                    <button class="btn btn-link song-item w-100 text-start" data-id="{{ song.id }}">{{ song.title }}</button>
+                </div>
+            {% endfor %}
         </div>
     </div>
 
-    <!-- Right Column - Edit Form -->
+    <!-- Right Column -->
     <div class="details-column">
         <div class="edit-form-container">
             <div class="initial-message">
-                <h3>Edit Song</h3>
-                <p>Select a song from the list to edit</p>
+                <h3>Select a Song</h3>
+                <p>Click a song from the list to edit its details.</p>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const rangeButtons = document.querySelectorAll('.btn-group-vertical .btn');
+        const songList = document.querySelector('.song-list');
+        const detailsColumn = document.querySelector('.details-column');
+
+        // Initial load of all songs
+        loadSongs();
+
+        rangeButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const range = this.getAttribute('data-range');
+                console.log(`Range button clicked: ${range}`);
+                loadSongs(range);
+            });
+        });
+
+        function loadSongs(range = null) {
+            showSpinner();
+            let url = '/api/songs';
+            if (range) {
+                url += `/${range}`;
+            }
+
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Fetched songs:', data);
+                    songList.innerHTML = '';
+
+                    // Create buttons for each song
+                    data.forEach(song => {
+                        const container = document.createElement('div');
+                        container.classList.add('song-item-container');
+
+                        const button = document.createElement('button');
+                        button.classList.add('btn', 'btn-link', 'song-item', 'w-100', 'text-start');
+                        button.setAttribute('data-id', song.id);
+                        button.textContent = song.title;
+                        button.addEventListener('click', () => loadSongDetails(song.id));
+
+                        container.appendChild(button);
+                        songList.appendChild(container);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching songs:', error);
+                    songList.innerHTML = '<p class="text-danger">Failed to load songs. Please try again.</p>';
+                })
+                .finally(() => {
+                    hideSpinner();
+                });
+        }
+
+        // Function to load song details
+        function loadSongDetails(songId) {
+            console.log(`Loading details for song ID: ${songId}`);
+            showSpinner();
+
+            fetch(`/api/song/${songId}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Fetched song details:', data);
+                    detailsColumn.innerHTML = `
+                        <form method="POST" action="/edit_song/${data.id}" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="title" class="form-label">Title</label>
+                                <input type="text" class="form-control" id="title" name="title" value="${data.title}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="composer" class="form-label">Composer</label>
+                                <input type="text" class="form-control" id="composer" name="composer" value="${data.composer || ''}">
+                            </div>
+                            <div class="mb-3">
+                                <label for="arrangement" class="form-label">Arrangement</label>
+                                <input type="text" class="form-control" id="arrangement" name="arrangement" value="${data.arrangement || ''}">
+                            </div>
+                            <div class="mb-3">
+                                <label for="key" class="form-label">Key Signature</label>
+                                <input type="text" class="form-control" id="key" name="key" value="${data.key_signature || ''}">
+                            </div>
+                            <div class="mb-3">
+                                <label for="difficulty" class="form-label">Difficulty</label>
+                                <input type="text" class="form-control" id="difficulty" name="difficulty" value="${data.difficulty || ''}">
+                            </div>
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Description</label>
+                                <textarea class="form-control" id="description" name="description" rows="3">${data.description || ''}</textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Current PDF File</label>
+                                ${data.pdf_filename ? `<p>${data.pdf_filename}</p>` : '<p>No PDF file available</p>'}
+                                <label for="pdf_file" class="form-label">Replace PDF File</label>
+                                <input type="file" class="form-control" id="pdf_file" name="pdf_file">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Current Audio File</label>
+                                ${data.audio_filename ? `<p>${data.audio_filename}</p>` : '<p>No audio file available</p>'}
+                                <label for="audio_file" class="form-label">Replace Audio File</label>
+                                <input type="file" class="form-control" id="audio_file" name="audio_file">
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </form>
+                    `;
+                })
+                .catch(error => {
+                    console.error('Error fetching song details:', error);
+                    detailsColumn.innerHTML = '<p class="text-danger">Failed to load song details. Please try again.</p>';
+                })
+                .finally(() => {
+                    hideSpinner();
+                });
+        }
+    });
+</script>
 {% endblock %}

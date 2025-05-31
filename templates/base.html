@@ -6,6 +6,7 @@
     <title>{% block title %}Choir Music Database{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
 </head>
 <body>
     <!-- Banner Image -->
@@ -20,7 +21,7 @@
             <li><a href="#" class="nav-link" data-page="about">About</a></li>
             <li><a href="{{ url_for('add_song') }}" class="nav-link {% if request.endpoint == 'add_song' %}active{% endif %}">Add New Song</a></li>
             <li><a href="{{ url_for('edit_song') }}" class="nav-link {% if request.endpoint == 'edit_song' %}active{% endif %}">Edit Song</a></li>
-            <li><a href="{{ url_for('dump') }}" class="nav-link {% if request.endpoint == 'dump' %}active{% endif %}">Dump</a></li>
+            <!-- li><a href="{{ url_for('dump') }}" class="nav-link {% if request.endpoint == 'dump' %}active{% endif %}">Dump</a></li><-->
         </ul>
         {% if session.get('user_email') %}
             <div class="user-info">
@@ -29,6 +30,11 @@
             </div>
         {% endif %}
     </nav>
+
+    <!-- Spinner -->
+    <div id="loading-spinner" class="spinner-border text-primary" role="status" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1050;">
+        <span class="visually-hidden">Loading...</span>
+    </div>
 
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages() %}
@@ -48,5 +54,74 @@
 
     <!-- Include Bootstrap JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Example: Show spinner when making an AJAX request
+        function showSpinner() {
+            document.getElementById('loading-spinner').style.display = 'block';
+        }
+
+        function hideSpinner() {
+            document.getElementById('loading-spinner').style.display = 'none';
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const songButtons = document.querySelectorAll('.song-item');
+            const detailsColumn = document.querySelector('.details-column');
+
+            songButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const songId = this.getAttribute('data-id');
+                    console.log(`Fetching details for song ID: ${songId}`); // Debug: Log the song ID
+
+                    // Show the spinner while fetching data
+                    showSpinner();
+
+                    // Fetch song details from the server
+                    fetch(`/api/song/${songId}`)
+                        .then(response => {
+                            console.log(`Response status: ${response.status}`); // Debug: Log the response status
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            console.log('Fetched song data:', data); // Debug: Log the fetched data
+
+                            // Update the details column with the song information
+                            detailsColumn.innerHTML = `
+                                <div class="edit-form-container">
+                                    <h3>${data.title}</h3>
+                                    <p><strong>Composer:</strong> ${data.composer || 'N/A'}</p>
+                                    <p><strong>Arrangement:</strong> ${data.arrangement || 'N/A'}</p>
+                                    <p><strong>Key Signature:</strong> ${data.key_signature || 'N/A'}</p>
+                                    <p><strong>Difficulty:</strong> ${data.difficulty || 'N/A'}</p>
+                                    <p><strong>Description:</strong> ${data.description || 'N/A'}</p>
+                                    
+                                    <div class="mt-3">
+                                        ${data.pdf_filename ? 
+                                            `<a href="/static/uploads/pdfs/${data.pdf_filename}" class="btn btn-primary me-2" target="_blank">
+                                                <i class="bi bi-file-pdf"></i> PDF
+                                             </a>` : ''}
+                                        ${data.audio_filename ? 
+                                            `<a href="/static/uploads/audio/${data.audio_filename}" class="btn btn-success" target="_blank">
+                                                <i class="bi bi-file-music"></i> MP3
+                                             </a>` : ''}
+                                    </div>
+                                </div>
+                            `;
+                        })
+                        .catch(error => {
+                            console.error('Error fetching song details:', error);
+                            detailsColumn.innerHTML = `<p class="text-danger">Failed to load song details. Please try again.</p>`;
+                        })
+                        .finally(() => {
+                            // Hide the spinner after fetching data
+                            hideSpinner();
+                        });
+                });
+            });
+        });
+    </script>
 </body>
 </html>

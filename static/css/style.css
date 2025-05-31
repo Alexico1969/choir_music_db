@@ -140,7 +140,10 @@ html, body {
 
 /* Song Lists */
 .song-list {
-    margin-top: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 10px;
 }
 
 .song-list h3 {
@@ -150,18 +153,24 @@ html, body {
     border-bottom: 2px solid #e9ecef;
 }
 
+.song-item-container {
+    width: 100%;
+}
+
 .song-item {
-    padding: 1rem;
-    margin-bottom: 0.5rem;
-    background: white;
-    border-radius: 4px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    cursor: pointer;
-    transition: box-shadow 0.2s;
+    font-size: 1.25rem !important;
+    background-color: #d9f2ff !important;
+    border-radius: 15px !important;
+    padding: 10px 15px !important;
+    margin-bottom: 10px !important;
+    border: 1px solid #b3e0ff !important;
+    text-align: left !important;
+    transition: background-color 0.3s ease !important;
 }
 
 .song-item:hover {
-    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+    background-color: #cceeff; /* Slightly darker blue on hover */
+    text-decoration: none; /* Remove underline on hover */
 }
 
 .song-item h4 {
