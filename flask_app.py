@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, make_response
 import sqlite3
 import os
 from werkzeug.utils import secure_filename
@@ -9,7 +9,7 @@ from secret import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_DISCOVERY_URL
 from datetime import timedelta
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-fixed-secret-key-here'  # Use a fixed key instead of random
+app.config['SECRET_KEY'] = 'your-fixed-secret-key-here'  # Use a fixed key instead of random
 
 # Move OAuth config right after app creation
 oauth = OAuth(app)
@@ -20,7 +20,7 @@ google = oauth.register(
     client_secret=GOOGLE_CLIENT_SECRET,
     client_kwargs={
         'scope': 'openid email profile',
-        'prompt': 'select_account'  # Force Google account selection
+        'prompt': 'select_account'  # Force Google account selection
     }
 )
 
@@ -31,6 +31,16 @@ class User(UserMixin):
 
     def get_id(self):
         return str(self.id)
+
+def nocache(view):
+    def no_cache_wrapper(*args, **kwargs):
+        response = make_response(view(*args, **kwargs))
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+    no_cache_wrapper.__name__ = view.__name__
+    return no_cache_wrapper
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -50,7 +60,7 @@ def make_session_permanent():
 
 
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 ALLOWED_EXTENSIONS = {'pdf', 'mp3', 'wav'}
 
@@ -90,6 +100,7 @@ def get_song(song_id):
 
 @app.route('/add_song', methods=['GET', 'POST'])
 @login_required
+@nocache
 def add_song():
     if request.method == 'GET':
         return render_template('add_song.html')
@@ -122,8 +133,8 @@ def add_song():
     conn = get_db_connection()
     conn.execute(
         '''INSERT INTO songs (title, composer, arrangement, key_signature, difficulty, 
-            description, pdf_filename, audio_filename) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+           description, pdf_filename, audio_filename) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
         (title, composer, arrangement, key_signature, difficulty, description, 
          pdf_filename, audio_filename)
     )
@@ -135,6 +146,7 @@ def add_song():
 
 @app.route('/edit_song', methods=['GET', 'POST'])
 @login_required
+@nocache
 def edit_song():
     print("Accessing /edit_song, current_user:", current_user.is_authenticated)
     if request.method == 'GET':
@@ -175,8 +187,8 @@ def edit_song():
     conn = get_db_connection()
     conn.execute(
         '''UPDATE songs SET title=?, composer=?, arrangement=?, key_signature=?, 
-            difficulty=?, description=?, pdf_filename=?, audio_filename=? 
-            WHERE id=?''',
+           difficulty=?, description=?, pdf_filename=?, audio_filename=? 
+           WHERE id=?''',
         (title, composer, arrangement, key_signature, difficulty, description, 
          pdf_filename, audio_filename, song_id)
     )
@@ -200,7 +212,7 @@ def delete_song(song_id):
         
         # Get song info for file deletion
         song = conn.execute('SELECT pdf_filename, audio_filename FROM songs WHERE id = ?', 
-                             (song_id,)).fetchone()
+                          (song_id,)).fetchone()
         
         if song:
             # Delete files if they exist
@@ -226,10 +238,10 @@ def delete_song(song_id):
 
 @app.route('/login')
 def login():
-    #session.clear()  # Clear any existing session - you had this commented, but it's good practice for fresh login
+    #session.clear()  # Clear any existing session
     next_url = request.args.get('next', url_for('home'))
     session['next_url'] = next_url
-    redirect_uri = url_for('authorize', _external=True)  # Ensure this matches Google Cloud Console
+    redirect_uri = url_for('authorize', _external=True)  # Ensure this matches Google Cloud Console
     return google.authorize_redirect(redirect_uri)
 
 @app.route('/authorize')
@@ -239,8 +251,8 @@ def authorize():
         token = google.authorize_access_token()
         if not token:
             raise ValueError("No token received from Google")
-        session['debug_token'] = token  # Store token in session for debugging
-        print(f"Token received: {token}")  # Debug: Check if token is received
+        session['debug_token'] = token  # Store token in session for debugging
+        print(f"Token received: {token}")  # Debug: Check if token is received
 
         # Attempt to parse the user info
         # You MUST extract the nonce used during redirect
@@ -257,8 +269,8 @@ def authorize():
         
         if not user_info:
             raise ValueError("No user info received from Google")
-        session['debug_user_info'] = user_info  # Store user info in session for debugging
-        print(f"User info: {user_info}")  # Debug: Check user info
+        session['debug_user_info'] = user_info  # Store user info in session for debugging
+        print(f"User info: {user_info}")  # Debug: Check user info
 
         # Extract the email
         user_email = user_info.get('email')
@@ -291,7 +303,7 @@ def authorize():
 
     except Exception as e:
         # Log the error for debugging
-        session['debug_error'] = str(e)  # Store error in session for debugging
+        session['debug_error'] = str(e)  # Store error in session for debugging
         print(f"Authorization failed: {str(e)}")
         flash('Login failed. Please try again.')
         return redirect(url_for('login'))
@@ -299,26 +311,9 @@ def authorize():
 @app.route('/logout')
 def logout():
     logout_user()  # Logs out the user from Flask-Login
-    
-    # Explicitly remove specific session keys related to login
-    session.pop('user_email', None)
-    session.pop('debug_token', None)
-    session.pop('debug_user_info', None)
-    session.pop('debug_login', None)
-    session.pop('debug_error', None)
-    
-    # Re-initialize the session to ensure all data is gone and new session cookie is set
-    session.clear() 
-    session.modified = True # Important to mark session as modified after clearing
-    
+    session.clear()  # Clear the entire session
     flash('You have been logged out. Please log in again to access protected features.')
-    
-    # Redirect to home with a no-cache header to prevent browser from serving cached content
-    response = redirect(url_for('home'))
-    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '-1'
-    return response
+    return redirect(url_for('home'))
 
 @app.route('/debug')
 def debug():
@@ -334,7 +329,6 @@ def debug():
 
 @app.after_request
 def add_header(response):
-    # This ensures all responses have strong no-cache headers
     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '-1'
@@ -346,3 +340,4 @@ if __name__ == '__main__':
     os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'audio'), exist_ok=True)
     
     app.run(debug=True)
+
