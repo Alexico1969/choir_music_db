@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Create/Edit Event Setlist</h2>
+    <div class="row">
+        <div class="col-md-6">
+            <h4>All Songs</h4>
+            <ul id="all-songs" class="list-group mb-3">
+                {% for song in songs %}
+                <li class="list-group-item d-flex justify-content-between align-items-center" data-id="{{ song.id }}">
+                    {{ song.title }}
+                    {% if song.difficulty %}
+                        <span class="badge bg-info">Selection: {{ song.difficulty }}</span>
+                    {% endif %}
+                    {% if not song.difficulty %}
+                        <button class="btn btn-sm btn-success add-song">Add</button>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="col-md-6">
+            <h4>Event Setlist</h4>
+            <ul id="event-songs" class="list-group mb-3">
+                {% for song in selected_songs %}
+                <li class="list-group-item d-flex justify-content-between align-items-center" data-id="{{ song.id }}">
+                    {{ song.title }}
+                    <button class="btn btn-sm btn-secondary me-1 move-up">↑</button>
+                    <button class="btn btn-sm btn-secondary me-1 move-down">↓</button>
+                    <button class="btn btn-sm btn-danger remove-song">Remove</button>
+                </li>
+                {% endfor %}
+            </ul>
+            <button class="btn btn-primary" id="save-setlist">Save Setlist</button>
+            <button class="btn btn-danger ms-2" id="clear-setlist">Clear Setlist</button>
+        </div>
+    </div>
+</div>
+<script>
+    // Add song to event setlist
+    document.querySelectorAll('.add-song').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const li = this.parentElement;
+            const songId = li.getAttribute('data-id');
+            // Prevent adding if already in setlist
+            if (document.querySelector(`#event-songs li[data-id="${songId}"]`)) {
+                return;
+            }
+            this.remove(); // Hide the Add button instantly
+            const clone = li.cloneNode(true);
+            clone.querySelector('.add-song')?.remove();
+            // Add up/down/remove controls
+            const upBtn = document.createElement('button');
+            upBtn.className = 'btn btn-sm btn-secondary me-1 move-up';
+            upBtn.textContent = '↑';
+            const downBtn = document.createElement('button');
+            downBtn.className = 'btn btn-sm btn-secondary me-1 move-down';
+            downBtn.textContent = '↓';
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'btn btn-sm btn-danger remove-song';
+            removeBtn.textContent = 'Remove';
+            clone.appendChild(upBtn);
+            clone.appendChild(downBtn);
+            clone.appendChild(removeBtn);
+            document.getElementById('event-songs').appendChild(clone);
+        });
+    });
+
+    // Delegate up/down/remove actions
+    document.getElementById('event-songs').addEventListener('click', function(e) {
+        const li = e.target.closest('li');
+        if (e.target.classList.contains('remove-song')) {
+            li.remove();
+        } else if (e.target.classList.contains('move-up')) {
+            if (li.previousElementSibling) li.parentNode.insertBefore(li, li.previousElementSibling);
+        } else if (e.target.classList.contains('move-down')) {
+            if (li.nextElementSibling) li.parentNode.insertBefore(li.nextElementSibling, li);
+        }
+    });
+
+    // Save setlist
+    document.getElementById('save-setlist').addEventListener('click', function() {
+        const ids = Array.from(document.querySelectorAll('#event-songs li')).map(li => li.getAttribute('data-id'));
+        fetch('/save_setlist', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({song_ids: ids})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Setlist saved!');
+                location.reload(); // Refresh the page
+            } else {
+                alert('Error saving setlist.');
+            }
+        });
+    });
+
+    // Clear setlist
+    document.getElementById('clear-setlist').addEventListener('click', function() {
+        document.getElementById('event-songs').innerHTML = '';
+        // Optionally, also clear on the server:
+        fetch('/save_setlist', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({song_ids: []})
+        })
+        .then(() => location.reload()); // Refresh the page after clearing
+    });
+</script>
+{% endblock %}

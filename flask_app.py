@@ -302,6 +302,43 @@ def update_song(song_id):
     flash('Song updated successfully!')
     return redirect(url_for('edit_song'))
 
+@app.route('/event', methods=['GET'])
+def event():
+    conn = get_db_connection()
+    songs = conn.execute('SELECT * FROM songs ORDER BY title').fetchall()
+    selected_songs = conn.execute('SELECT * FROM songs WHERE difficulty IS NOT NULL ORDER BY CAST(difficulty AS INTEGER)').fetchall()
+    conn.close()
+    return render_template('event.html', songs=songs, selected_songs=selected_songs)
+
+@app.route('/select_songs', methods=['POST'])
+def select_songs():
+    song_ids = request.json.get('song_ids', [])
+    conn = get_db_connection()
+    for song_id in song_ids:
+        # Get current description
+        song = conn.execute('SELECT description FROM songs WHERE id = ?', (song_id,)).fetchone()
+        desc = song['description'] if song and song['description'] else ''
+        # Add 'S-' if not already present
+        if not desc.startswith('S-'):
+            desc = 'S-' + desc
+        conn.execute('UPDATE songs SET description = ? WHERE id = ?', (desc, song_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'success'})
+
+@app.route('/save_setlist', methods=['POST'])
+def save_setlist():
+    song_ids = request.json.get('song_ids', [])
+    conn = get_db_connection()
+    # Reset difficulty for all songs
+    conn.execute('UPDATE songs SET difficulty = NULL')
+    # Set difficulty for songs in setlist
+    for idx, song_id in enumerate(song_ids, start=1):
+        conn.execute('UPDATE songs SET difficulty = ? WHERE id = ?', (idx, song_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'success'})
+
 if __name__ == '__main__':
     # Create upload directories if they don't exist
     os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'pdfs'), exist_ok=True)
