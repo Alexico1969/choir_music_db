@@ -8,7 +8,7 @@
             <ul id="all-songs" class="list-group mb-3">
                 {% for song in songs %}
                 <li class="list-group-item d-flex justify-content-between align-items-center" data-id="{{ song.id }}">
-                    {{ song.title }}
+                    <span>{{ song.title }}</span>
                     {% if song.difficulty %}
                         <span class="badge bg-info">Selection: {{ song.difficulty }}</span>
                     {% endif %}
@@ -23,11 +23,13 @@
             <h4>Event Setlist</h4>
             <ul id="event-songs" class="list-group mb-3">
                 {% for song in selected_songs %}
-                <li class="list-group-item d-flex justify-content-between align-items-center" data-id="{{ song.id }}">
-                    {{ song.title }}
-                    <button class="btn btn-sm btn-secondary me-1 move-up">↑</button>
-                    <button class="btn btn-sm btn-secondary me-1 move-down">↓</button>
-                    <button class="btn btn-sm btn-danger remove-song">Remove</button>
+                <li class="list-group-item d-flex align-items-center" data-id="{{ song.id }}">
+                    <span>{{ song.title }}</span>
+                    <span class="ms-3">
+                        <button class="btn btn-sm btn-secondary me-1 move-up">↑</button>
+                        <button class="btn btn-sm btn-secondary me-1 move-down">↓</button>
+                        <button class="btn btn-sm btn-danger remove-song">Delete</button>
+                    </span>
                 </li>
                 {% endfor %}
             </ul>
@@ -42,27 +44,47 @@
         btn.addEventListener('click', function() {
             const li = this.parentElement;
             const songId = li.getAttribute('data-id');
+            const songTitle = li.querySelector('span') ? li.querySelector('span').textContent : li.childNodes[0].textContent.trim();
+
             // Prevent adding if already in setlist
             if (document.querySelector(`#event-songs li[data-id="${songId}"]`)) {
                 return;
             }
             this.remove(); // Hide the Add button instantly
-            const clone = li.cloneNode(true);
-            clone.querySelector('.add-song')?.remove();
-            // Add up/down/remove controls
+
+            // Build new li for setlist
+            const newLi = document.createElement('li');
+            newLi.className = 'list-group-item d-flex align-items-center';
+            newLi.setAttribute('data-id', songId);
+
+            // Title
+            const titleSpan = document.createElement('span');
+            titleSpan.textContent = songTitle;
+            newLi.appendChild(titleSpan);
+
+            // Button group
+            const btnGroup = document.createElement('span');
+            btnGroup.className = 'ms-3';
+
             const upBtn = document.createElement('button');
             upBtn.className = 'btn btn-sm btn-secondary me-1 move-up';
             upBtn.textContent = '↑';
+
             const downBtn = document.createElement('button');
             downBtn.className = 'btn btn-sm btn-secondary me-1 move-down';
             downBtn.textContent = '↓';
+
             const removeBtn = document.createElement('button');
             removeBtn.className = 'btn btn-sm btn-danger remove-song';
-            removeBtn.textContent = 'Remove';
-            clone.appendChild(upBtn);
-            clone.appendChild(downBtn);
-            clone.appendChild(removeBtn);
-            document.getElementById('event-songs').appendChild(clone);
+            removeBtn.textContent = 'Delete';
+
+            btnGroup.appendChild(upBtn);
+            btnGroup.appendChild(downBtn);
+            btnGroup.appendChild(removeBtn);
+
+            newLi.appendChild(btnGroup);
+
+            document.getElementById('event-songs').appendChild(newLi);
         });
     });
 

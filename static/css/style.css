@@ -356,6 +356,10 @@ html, body {
     }
 }
 
+.col-md-6 {
+    max-width: 600px;
+}
+
 .songs-column .initial-message {
     text-align: center;
     color: #666;
@@ -376,4 +380,14 @@ html, body {
     display: block;
     max-height: 200px;
     object-fit: cover;
+}
+
+/* Add to your style.css */
+#event-songs {
+    margin-left: 0px;
+}
+
+.list-group-item {
+    flex-wrap: wrap;
+    word-break: break-word;
 }
