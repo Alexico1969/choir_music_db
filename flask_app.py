@@ -356,12 +356,14 @@ def live():
         lyrics = None
         if song['lyrics_filename']:
             lyrics_path = os.path.join('static', 'uploads', 'lyrics', song['lyrics_filename'])
+            print(f"Trying to read: {lyrics_path}")  # Debug
             try:
                 with open(lyrics_path, encoding='utf-8') as f:
-                    lyrics = f.read()
-            except Exception:
+                    lyrics = f.read().strip() or None
+                print(f"Lyrics for {song['title']}: {lyrics[:30]}...")  # Debug
+            except Exception as e:
+                print(f"Error reading {lyrics_path}: {e}")
                 lyrics = None
-        # Add lyrics to song dict
         song_dict = dict(song)
         song_dict['lyrics'] = lyrics
         selected_songs.append(song_dict)
