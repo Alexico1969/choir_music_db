@@ -304,6 +304,9 @@ def update_song(song_id):
 
 @app.route('/event', methods=['GET'])
 def event():
+    if 'auth_code' not in session or session['auth_code'] != code:
+        flash('Please enter the correct code to edit this song.')
+        return redirect(url_for('verify_code', next=request.url))
     conn = get_db_connection()
     songs = conn.execute('SELECT * FROM songs ORDER BY title').fetchall()
     selected_songs = conn.execute('SELECT * FROM songs WHERE difficulty IS NOT NULL ORDER BY CAST(difficulty AS INTEGER)').fetchall()
@@ -312,6 +315,9 @@ def event():
 
 @app.route('/select_songs', methods=['POST'])
 def select_songs():
+    if 'auth_code' not in session or session['auth_code'] != code:
+        flash('Please enter the correct code to edit this song.')
+        return redirect(url_for('verify_code', next=request.url))
     song_ids = request.json.get('song_ids', [])
     conn = get_db_connection()
     for song_id in song_ids:
@@ -338,6 +344,29 @@ def save_setlist():
     conn.commit()
     conn.close()
     return jsonify({'status': 'success'})
+
+@app.route('/live')
+def live():
+    import os
+    selected_songs = []
+    conn = get_db_connection()
+    for song in conn.execute(
+        'SELECT * FROM songs WHERE difficulty IS NOT NULL ORDER BY CAST(difficulty AS INTEGER)'
+    ).fetchall():
+        lyrics = None
+        if song['lyrics_filename']:
+            lyrics_path = os.path.join('static', 'uploads', 'lyrics', song['lyrics_filename'])
+            try:
+                with open(lyrics_path, encoding='utf-8') as f:
+                    lyrics = f.read()
+            except Exception:
+                lyrics = None
+        # Add lyrics to song dict
+        song_dict = dict(song)
+        song_dict['lyrics'] = lyrics
+        selected_songs.append(song_dict)
+    conn.close()
+    return render_template('live.html', selected_songs=selected_songs)
 
 if __name__ == '__main__':
     # Create upload directories if they don't exist

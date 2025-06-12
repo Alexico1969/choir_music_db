@@ -111,7 +111,6 @@
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                alert('Setlist saved!');
                 location.reload(); // Refresh the page
             } else {
                 alert('Error saving setlist.');

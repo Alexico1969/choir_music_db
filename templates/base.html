@@ -21,7 +21,8 @@
             <li><a href="#" class="nav-link" data-page="about">About</a></li>
             <li><a href="{{ url_for('add_song') }}" class="nav-link {% if request.endpoint == 'add_song' %}active{% endif %}">Add New Song</a></li>
             <li><a href="{{ url_for('edit_song') }}" class="nav-link {% if request.endpoint == 'edit_song' %}active{% endif %}">Edit Song</a></li>
-            <li><a href="{{ url_for('event') }}" class="nav-link {% if request.endpoint == 'event' %}active{% endif %}">Event</a></li>
+            <li><a href="{{ url_for('event') }}" class="nav-link {% if request.endpoint == 'event' %}active{% endif %}">Event-Planner</a></li>
+            <li><a href="{{ url_for('live') }}" class="nav-link {% if request.endpoint == 'live' %}active{% endif %}">Live</a></li>
             <!-- li><a href="{{ url_for('dump') }}" class="nav-link {% if request.endpoint == 'dump' %}active{% endif %}">Dump</a></li><-->
         </ul>
         {% if session.get('user_email') %}
